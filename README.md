@@ -4,10 +4,10 @@ Agent skills that I use every day.
 
 | Skill | What it does |
 | --- | --- |
-| [`draft-commit`](skills/draft-commit/SKILL.md) | Drafts a commit message for the staged changes. |
-| [`draft-pr`](skills/draft-pr/SKILL.md) | Drafts a PR description for the current branch, in 120 words or fewer. |
+| [`commit-message`](skills/commit-message/SKILL.md) | Writes a commit message for the staged changes. |
+| [`pr-description`](skills/pr-description/SKILL.md) | Writes a PR description for the current branch, focused on why the change exists. |
 
-Both skills are read-only. They write text and do not run git writes.
+Both skills are read-only. They write text and do not run git writes. Call them with `/commit-message` or `/pr-description`, or let the agent use them when it commits or opens a PR.
 
 ## Install
 
@@ -27,9 +27,9 @@ If you installed niksi with Homebrew or `npm install -g`, use `nik` in place of 
 npx skills add osrim/skills
 ```
 
-## Requirements
+## Optional
 
-Both skills load [`the-writing-whip`](https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11). Install it separately:
+Both skills use [`the-writing-whip`](https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11) when it is installed. Without it, they fall back to a short plain-writing rule. To install it:
 
 ```sh
 npx niksi add https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11
