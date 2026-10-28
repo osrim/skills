@@ -37,6 +37,15 @@ install it:
 npx niksi add https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11
 ```
 
+## Release
+
+Push `main`, then create a GitHub release. The command tags `main` on GitHub
+and writes release notes from the commits since the last tag:
+
+```sh
+gh release create vX.Y.Z --target main --generate-notes
+```
+
 ## License
 
 [MIT](LICENSE)
