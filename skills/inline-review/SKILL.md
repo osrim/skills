@@ -58,7 +58,17 @@ With `draft`, return the comments with their anchors and stop here.
 3. Submit one review: `event: COMMENT`, the pinned `commit_id`, and one `comments` item per finding (`path`, `line`, `side`, `body`, plus `start_line` and `start_side` for a range). Use a GitHub API tool, or write the payload to a JSON file and run `gh api repos/<owner>/<repo>/pulls/<number>/reviews --method POST --input <file>`. Review body: `🤖 <your model display name>`, then notes on unanchored findings or a skipped axis.
 4. Fetch the review's comments and check each body, path, anchor, and URL. Older API responses give `position` and `diff_hunk` in place of `line`. After a timeout, list existing reviews before a retry, so a retry never duplicates.
 
-With no new findings, publish nothing and say so. On failure, report what was published and what remains, and keep the prepared comments.
+With no new findings, submit the review with no `comments` and this body:
+
+```text
+🤖 <your model display name>
+
+No findings on <short head sha>.
+```
+
+Write `No new findings` when existing comments already cover every finding, and name a skipped axis in place of its review. Skip the review when an earlier one on the same head SHA already reports no findings.
+
+On failure, report what was published and what remains, and keep the prepared comments.
 
 ## 7. Report
 
