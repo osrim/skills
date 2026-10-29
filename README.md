@@ -6,7 +6,8 @@ Agent skills that I use every day.
 | --- | --- |
 | [`commit-message`](skills/commit-message/SKILL.md) | Writes a commit message for the staged changes. |
 | [`pr-description`](skills/pr-description/SKILL.md) | Writes a PR description for the current branch, focused on why the change exists. |
-| [`code-review-inline`](skills/code-review-inline/SKILL.md) | Reviews a GitHub PR against the repository's standards and its spec, then publishes inline comments. |
+| [`inline-review`](skills/inline-review/SKILL.md) | Reviews a GitHub PR against the repository's standards and its spec, then publishes inline comments. |
+| [`address-review`](skills/address-review/SKILL.md) | Works through a PR's open review comments: fixes what holds up and replies to each thread, signed with the model. |
 
 ## Install
 

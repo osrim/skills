@@ -1,6 +1,6 @@
 ---
 name: pr-description
-description: Writes a pull request description for the current branch, focused on why the change exists. Use when the user asks for a PR description, or before you run gh pr create. Read-only.
+description: Trigger this when the user asks for a PR description, or before you run `gh pr create` or `gh pr edit --body`.
 allowed-tools: Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git branch:*), Bash(git rev-parse:*)
 ---
 

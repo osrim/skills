@@ -1,8 +1,7 @@
 ---
-name: code-review-inline
-description: Review a GitHub PR against repository standards and its spec, then publish the findings as inline review comments.
+name: inline-review
+description: Trigger this when the user asks for an inline review of a PR.
 argument-hint: "[pr-url|number] [draft] [spec=<path|url|issue>]"
-disable-model-invocation: true
 ---
 
 # Code review with inline comments
@@ -13,7 +12,7 @@ Arguments: `$ARGUMENTS`
 - `draft`: return the comments and publish nothing.
 - `spec=<path|url|issue>`: the spec source. It replaces spec discovery.
 
-Without `draft`, the invocation authorizes publishing. Publish after verification, with no further confirmation.
+Without `draft`, the user's request authorizes publishing. Publish after verification, with no further confirmation.
 
 ## 1. Pin the review
 
