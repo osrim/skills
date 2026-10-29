@@ -28,7 +28,7 @@ Post the plan as a numbered list of issue, branch, and base. The step is done wh
 For each item, from the top:
 
 1. Fetch `origin`, then create the item's worktree on a new branch from `origin/<base>`: the repo's worktree tool when it has one, otherwise `git worktree add -b <branch> <path> origin/<base>`.
-2. Dispatch one subagent with the brief below, and wait for its report.
+2. Dispatch one subagent, started with a fresh context window, with the brief below, and wait for its report.
 3. Check the PR: `gh pr view <branch> --json url,state,baseRefName` shows an open PR whose base is the item's base. Correct a wrong base with `gh pr edit <branch> --base <base>`. Post the PR link with the stack position (`2/7`).
 
 The item is done when that check passes. The next item then starts, with this item's branch as its base. When an item ends without a PR, stop the stack and go to step 3: every later item builds on this one.
