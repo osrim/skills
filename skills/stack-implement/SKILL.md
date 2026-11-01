@@ -11,9 +11,9 @@ Arguments: `$ARGUMENTS`
 - The source: a milestone, project, or list of issues (URLs or IDs).
 - The base branch for the first item. Empty: the repo's default branch.
 
-You are the orchestrator. Every issue gets its own worktree and its own subagent, and the subagent runs the `implement` skill. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
+You are the orchestrator. Every issue gets its own worktree and its own subagent, and the subagent runs the `implement` skill. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch. Step 3 links the PRs into a GitHub stack whose trunk is the base branch. Without that link, GitHub merges each PR into the branch below it, and merging the top PR lands only on the previous item's branch.
 
-The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
+The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into a GitHub stack, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
 
 ## 1. Plan the stack
 
@@ -31,7 +31,7 @@ For each item, from the top:
 2. Dispatch one subagent, started with a fresh context window, with the brief below, and wait for its report.
 3. Check the PR: `gh pr view <branch> --json url,state,baseRefName` shows an open PR whose base is the item's base. Correct a wrong base with `gh pr edit <branch> --base <base>`. Post the PR link with the stack position (`2/7`).
 
-The item is done when that check passes. The next item then starts, with this item's branch as its base. When an item ends without a PR, stop the stack and go to step 3: every later item builds on this one.
+The item is done when that check passes. The next item then starts, with this item's branch as its base. When an item ends without a PR, stop the stack and go to step 3 with the items that have PRs: every later item builds on this one.
 
 ### Delegate brief
 
@@ -46,6 +46,18 @@ The brief carries this item's issue alone, so the delegate gives the whole of it
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.
 - Report the PR URL, the head commit, the checks run with their results, every conservative decision, and anything left undone.
 
-## 3. Report
+## 3. Link the stack
 
-Give a table of position, issue, branch, base, and PR. Under it, list each conservative decision with its PR. If the stack stopped, name the failing item, why it failed, and the items not started.
+Link every open PR, bottom to top, into one GitHub stack with the base branch as its trunk:
+
+```sh
+gh stack link --base <base> <pr 1> <pr 2> ... <pr n>
+```
+
+Pass PR numbers, not branch names: `gh stack link` pushes branch arguments before it looks them up. Leave out `--base` and the trunk becomes the repo's default branch, which is wrong when the user named another base.
+
+The step is done when `gh api repos/{owner}/{repo}/pulls/<top pr> --jq .stack` shows `base.ref` equal to the base branch and `size` equal to the number of PRs. Skip the step when the stack has one PR. When `gh stack` is not installed (`gh extension list` has no `github/gh-stack`), skip the link and put the `gh stack link` command in the report for the user to run.
+
+## 4. Report
+
+Give the stack number from `.stack.number`, then a table of position, issue, branch, base, and PR. Under it, list each conservative decision with its PR. If the stack stopped, name the failing item, why it failed, and the items not started.

@@ -36,6 +36,7 @@ alongside the skills that use it:
 | Dependency | Used by | Required |
 | --- | --- | --- |
 | [`implement`](https://github.com/mattpocock/skills/tree/main/skills/engineering/implement) | `stack-implement`, which runs it for each issue. | Yes |
+| [`gh stack`](https://github.com/github/gh-stack) | `stack-implement`, which links the PRs into a GitHub stack that merges into the base branch. Without it, the skill reports the link command for you to run. | No |
 | [`the-writing-whip`](https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11) | `commit-message` and `pr-description`. Without it, they use a short plain-writing rule. | No |
 
 ## Release
