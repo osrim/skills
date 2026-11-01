@@ -20,6 +20,9 @@ ship
 └─ address-review    fixes or answers pr-review, review bots, and people
 ```
 
+Every commit goes through `commit-message`, and every PR body through
+`pr-description`.
+
 Each skill also runs on its own. Name your cross-provider reviewer in your
 `AGENTS.md` or `CLAUDE.md`, or pass `reviewer=` to `ship`.
 
