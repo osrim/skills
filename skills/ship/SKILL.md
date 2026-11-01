@@ -15,7 +15,7 @@ You are the orchestrator. Every PR gets two rounds of review: the private self r
 
 The user's request authorizes everything `stack-implement`, `pr-review`, and `address-review` authorize, plus force-pushing the stack's branches when restacking (step 5). Merging stays with the user.
 
-Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout.
+Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout. Tell each one that commits: before every commit, call the Skill tool with `commit-message`; before `gh pr edit --body`, call it with `pr-description`, passing the PR's base.
 
 ## 1. Implement
 
@@ -25,7 +25,7 @@ Call the Skill tool with `stack-implement`, passing the source and base branch. 
 
 Collect every conservative decision and every undone item from the delegate reports. Ask the user about all of them in one grouped question set: each question names its PR, the option taken, and what the alternative changes. With none, go to step 3.
 
-For each PR with a changed decision or a requested follow-up, dispatch one sub-agent to apply the answers in its worktree, update the PR description's decision record, commit with the commit skill when installed, and push with a plain `git push`. The step is done when every decision is confirmed or applied and pushed.
+For each PR with a changed decision or a requested follow-up, dispatch one sub-agent to apply the answers in its worktree, update the PR description's decision record, commit, and push with a plain `git push`. The step is done when every decision is confirmed or applied and pushed.
 
 ## 3. Review on another provider
 

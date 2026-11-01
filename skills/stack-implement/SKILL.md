@@ -44,7 +44,8 @@ The brief carries this item's issue alone, so the delegate gives the whole of it
 - The base branch, which is also the PR's base.
 - Move the issue to In Progress before starting.
 - Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go, and the full test suite once at the end.
-- Commit, push the branch, and open a PR with `--base <base>`. Write the commits with the commit skill and the PR body with the PR description skill, given the base, when installed. The body links the issue. Leave the PR unmerged.
+- Before every commit, call the Skill tool with `commit-message`. Before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the base.
+- Commit, push the branch, and open a PR with `--base <base>`. The body links the issue. Leave the PR unmerged.
 - Self review: call the Skill tool with `pr-review`, passing the PR and `draft`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
 - When a commit fails on signing, keep the changes staged and report the exact error; retry at most once.
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.

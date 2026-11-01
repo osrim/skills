@@ -52,7 +52,7 @@ Run the narrowest checks that cover the fixes, plus the checks the repo document
 
 With `draft`, leave the fixes uncommitted and go to step 4.
 
-Commit the fixes in the repo's commit style (use the `commit-message` skill when installed), and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the commit fails on signing, keep the fixes staged, report the exact error once, and stop before replying. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call. The step is done when every Fix maps to a pushed commit.
+Commit the fixes, calling the Skill tool with `commit-message` before each commit, and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the commit fails on signing, keep the fixes staged, report the exact error once, and stop before replying. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call. The step is done when every Fix maps to a pushed commit.
 
 ## 4. Reply
 
