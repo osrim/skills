@@ -9,7 +9,7 @@ metadata:
     url: "https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md"
 ---
 
-# Code review with inline comments
+# PR review
 
 Arguments: `$ARGUMENTS`
 
@@ -25,13 +25,15 @@ Fetch the PR's description, base and head SHAs, commits, changed files, checks, 
 
 ## 2. Gather sources
 
-**Spec:** the `spec=` argument; else issues referenced in the PR description and commits, linked PRs, and matching files under `docs/`, `specs/` or `.scratch/`. Record the source. With no spec, ask for one while the Standards review runs; if none arrives, skip the Spec axis.
+**Spec:** the `spec=` argument; else issues referenced in the PR description and commits, linked PRs, and matching files under `docs/`, `specs/` or `.scratch/`. Record the source. With no spec, skip the Spec axis and say so in the review body and the report.
 
 **Standards:** search the repo for every file that documents how code should be written: applicable `AGENTS.md`, `CLAUDE.md`, contribution guides, and the docs they reference. `CODING_STANDARDS.md` and `CONTRIBUTING.md` go on the list when they exist. Record each path and rule.
 
 ## 3. Run three independent reviewers
 
-Each reviewer is its own sub-agent, started with a fresh context window, so it reads the code fresh and its findings stay independent of yours and of the others. Issue the three calls together, in parallel, with the pinned SHAs, diff command, commit list, changed files, and their sources, and use the reports the calls return. Your own reading of the code starts at verification. For several PRs, spawn three per PR. When you cannot spawn sub-agents, tell the user and stop before reviewing. Reviewers report; only you publish. Each report stays under 400 words and gives every finding a path, line or range, priority, evidence, and requested fix. The step is done when every reviewer has returned its report.
+Start each reviewer as its own sub-agent with a fresh context window, so its findings stay independent of yours and of the others. Start the three together, with the pinned SHAs, diff command, commit list, changed files, and their sources; your own reading of the code starts at verification. For several PRs, start three per PR. When you cannot start sub-agents, tell the user and stop.
+
+Reviewers report and only you publish. Each report stays under 400 words and gives every finding a path, line or range, priority, evidence, and requested fix. The step is done when every reviewer has returned its report.
 
 - **Standards reviewer:** every documented-standard breach, citing source and rule, plus Fowler code smells in the introduced code (Mysterious Name, Duplicated Code, Feature Envy, Data Clumps, Primitive Obsession, Repeated Switches, Shotgun Surgery, Divergent Change, Speculative Generality, Message Chains, Middle Man, Refused Bequest), quoting the hunk. Repo standards override smells, and smells are judgement calls. Scope: issues the diff introduces that tooling does not enforce.
 - **Spec reviewer:** missing or partial requirements, unrequested scope, and incorrect implementations, each quoting the spec. Follow callers, config, and deployment behavior where they decide whether a requirement works.
@@ -45,7 +47,7 @@ Each reviewer is its own sub-agent, started with a fresh context window, so it r
 
 ## 4. Verify
 
-For each finding, confirm the cited rule or spec, the code path, the affected case, and the consequence, using the narrowest check or existing CI evidence. Reproduce a Correctness case with a test or a one-off script when that is cheap. Deployment findings need evidence from the service lifecycle, pipeline, or plan; a rollout prerequisite the PR already states is not an omission. Settle unsupported claims with the reviewer or drop them. Keep the three axes separate and unranked against each other.
+For each finding, confirm the cited rule or spec, the code path, the affected case, and the consequence, using the narrowest check or existing CI evidence. Reproduce a Correctness case with a test or a one-off script when that is cheap. Deployment findings need evidence from the service lifecycle, pipeline, or plan; a rollout prerequisite the PR already states is not an omission. Settle unsupported claims with the reviewer or drop them. Keep the three axes separate and unranked against each other. The step is done when every finding is confirmed or dropped.
 
 Priority by impact: P0 blocker, P1 urgent correctness or operational failure, P2 normal fix, P3 minor improvement or documented convention. A smell alone is P2 or lower.
 
@@ -70,7 +72,7 @@ With `draft`, return the comments with their anchors and stop here.
 3. Submit one review: `event: COMMENT`, the pinned `commit_id`, and one `comments` item per finding (`path`, `line`, `side`, `body`, plus `start_line` and `start_side` for a range). Use a GitHub API tool, or write the payload to a JSON file and run `gh api repos/<owner>/<repo>/pulls/<number>/reviews --method POST --input <file>`. Review body: the signature `address-review` defines (`🤖 <your model display name>`), then notes on unanchored findings or a skipped axis.
 4. Fetch the review's comments and check each body, path, anchor, and URL. Older API responses give `position` and `diff_hunk` in place of `line`. After a timeout, list existing reviews before a retry, so a retry never duplicates.
 
-With no new findings, submit the review with no `comments` and this body:
+With no new findings, submit the review with no `comments` and this body, unless an earlier review on the same head SHA already reports no findings:
 
 ```text
 🤖 <your model display name>
@@ -78,7 +80,7 @@ With no new findings, submit the review with no `comments` and this body:
 No findings on <short head sha>.
 ```
 
-Write `No new findings` when existing comments already cover every finding, and name a skipped axis in place of its review. Skip the review when an earlier one on the same head SHA already reports no findings.
+Write `No new findings` when existing comments already cover every finding, and name a skipped axis in place of its review.
 
 On failure, report what was published and what remains, and keep the prepared comments.
 

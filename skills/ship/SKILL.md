@@ -8,7 +8,7 @@ argument-hint: "<issue, milestone, project, or issue list> [base branch] [review
 
 Arguments: `$ARGUMENTS`
 
-- The source and base branch, exactly as `stack-implement` takes them. One issue is a stack of one.
+- The source and base branch, exactly as `stack-implement` takes them. One issue is a stack of one. A list of open PRs skips to step 3, bottom of the stack first, with a worktree per PR branch and the repo's documented checks in place of the delegates' checks.
 - `reviewer=`: the cross-provider reviewer, such as `codex/gpt-6.1-sol:high`. Empty: the reviewer named in the user's instructions (`AGENTS.md`, `CLAUDE.md`). With neither, ask before step 3.
 
 You are the orchestrator. Every PR gets two rounds of review: the private self review `stack-implement` runs with `pr-review draft`, then a public `pr-review` by a model from a **different provider** than yours. `address-review` then fixes or answers every open comment on the PR: from that reviewer, from review bots such as CodeRabbit, and from humans.

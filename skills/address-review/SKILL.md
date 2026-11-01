@@ -30,13 +30,13 @@ Step 1 reads a thread whose latest comment is signed as already answered, so a r
 Check out the PR's head branch, level with its remote. Use an isolated checkout when the working tree has uncommitted changes. Fetch, reading every page:
 
 - **Threads:** unresolved review threads from GraphQL `pullRequest.reviewThreads` (`isResolved`, `isOutdated`, `path`, `line`, and each comment's `databaseId`, author, and body).
-- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor, such as the unanchored findings in a `pr-review` body.
+- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor: the unanchored findings in a `pr-review` body, and findings folded into `<details>` blocks, such as CodeRabbit's nitpick and outside-diff comments.
 
-Skip a thread whose latest comment opens with the signature (an earlier answer), and a review body that a later signed PR comment already answers. Everything else is the work list.
+Skip a thread whose latest comment opens with the signature (an earlier answer), and a review body that a later signed PR comment already answers. Everything else is the work list. With an empty work list, report that and stop.
 
 ## 2. Decide each comment
 
-Read the commented code at the PR head and the code it connects to. Check each claim yourself: the reviewer's priority and confidence are not evidence. Give every comment on the work list exactly one outcome:
+Read the commented code at the PR head and the code it connects to. Check each claim yourself: the reviewer's priority and confidence are not evidence. Give every comment on the work list exactly one outcome. Comments that raise the same issue share one fix, and each gets its own reply.
 
 - **Fix:** the comment holds up. Make the smallest change that resolves it, in the repo's standards. An outdated thread that a later commit already fixed is a Fix with that commit.
 - **Decline:** the comment is wrong, out of scope, or conflicts with the spec or a repo rule. Record the evidence: code path, rule, spec line, or check output.
@@ -50,7 +50,7 @@ Run the narrowest checks that cover the fixes, plus the checks the repo document
 
 With `draft`, leave the fixes uncommitted and go to step 4.
 
-Commit the fixes in the repo's commit style (use the `commit-message` skill when installed), and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call.
+Commit the fixes in the repo's commit style (use the `commit-message` skill when installed), and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call. The step is done when every Fix maps to a pushed commit.
 
 ## 4. Reply
 

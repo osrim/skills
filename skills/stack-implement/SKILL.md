@@ -11,13 +11,13 @@ Arguments: `$ARGUMENTS`
 - The source: a milestone, project, or list of issues (URLs or IDs).
 - The base branch for the first item. Empty: the repo's default branch.
 
-You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch. Step 3 links the PRs into a GitHub stack whose trunk is the base branch. Without that link, GitHub merges each PR into the branch below it, and merging the top PR lands only on the previous item's branch.
+You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
 
 The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into a GitHub stack, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
 
 ## 1. Plan the stack
 
-Fetch every issue in the source, reading every page. Order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside the stack, check that it is merged into the base branch; if one is not, stop and report it.
+Fetch every issue in the source, reading every page, and drop closed issues. Order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside the stack, check that it is merged into the base branch; if one is not, stop and report it.
 
 Name each item's branch in the repo's convention, falling back to `feat/<issue id in lowercase>`.
 
@@ -26,6 +26,8 @@ Post the plan as a numbered list of issue, branch, and base. The step is done wh
 ## 2. Build each item, in order
 
 For each item, from the top:
+
+When the item's branch already has an open PR (an earlier run), reuse the PR and the branch's worktree (`git worktree add <path> <branch>` when it has none), then go to check 3.
 
 1. Fetch `origin`, then create the item's worktree on a new branch from `origin/<base>`: the repo's worktree tool when it has one, otherwise `git worktree add -b <branch> <path> origin/<base>`.
 2. Dispatch one subagent, started with a fresh context window, with the brief below, and wait for its report.
@@ -42,14 +44,14 @@ The brief carries this item's issue alone, so the delegate gives the whole of it
 - The base branch, which is also the PR's base.
 - Move the issue to In Progress before starting.
 - Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go, and the full test suite once at the end.
-- Commit, push the branch, and open a PR with `--base <base>`. Write the commits with the commit skill and the PR body with the PR description skill, given the base, when installed. Leave the PR unmerged.
+- Commit, push the branch, and open a PR with `--base <base>`. Write the commits with the commit skill and the PR body with the PR description skill, given the base, when installed. The body links the issue. Leave the PR unmerged.
 - Self review: call the Skill tool with `pr-review`, passing the PR and `draft`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.
 - Report the PR URL, the head commit, the checks run with their results, each self-review finding with its outcome (or why `pr-review` could not run), every conservative decision, and anything left undone.
 
 ## 3. Link the stack
 
-Link every open PR, bottom to top, into one GitHub stack with the base branch as its trunk:
+Without a GitHub stack, GitHub merges each PR into the branch below it, so merging the top PR lands only on the previous item's branch. Link every open PR, bottom to top, into one stack with the base branch as its trunk:
 
 ```sh
 gh stack link --base <base> <pr 1> <pr 2> ... <pr n>
