@@ -11,7 +11,7 @@ Arguments: `$ARGUMENTS`
 - The source: a milestone, project, or list of issues (URLs or IDs).
 - The base branch for the first item. Empty: the repo's default branch.
 
-You are the orchestrator. Every issue gets its own worktree and its own subagent, and the subagent runs the `implement` skill. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
+You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
 
 The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
 
@@ -40,12 +40,13 @@ The brief carries this item's issue alone, so the delegate gives the whole of it
 - The issue ID, its link, and the stack position.
 - The worktree path and branch. All work happens there.
 - The base branch, which is also the PR's base.
-- Read the `implement` skill's `SKILL.md` (in the skills directory, such as `~/.claude/skills/implement/`) and follow it for this issue. (`implement` is user-invoked, so the Skill tool cannot load it.)
 - Move the issue to In Progress before starting.
-- After `implement` finishes, push the branch and open a PR with `--base <base>`. Write the commits and PR text with the repo's commit and PR description skills when installed. Leave the PR unmerged.
+- Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go, and the full test suite once at the end.
+- Commit, push the branch, and open a PR with `--base <base>`. Write the commits with the commit skill and the PR body with the PR description skill, given the base, when installed. Leave the PR unmerged.
+- Self review: call the Skill tool with `pr-review`, passing the PR and `draft`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.
-- Report the PR URL, the head commit, the checks run with their results, every conservative decision, and anything left undone.
+- Report the PR URL, the head commit, the checks run with their results, each self-review finding with its outcome (or why `pr-review` could not run), every conservative decision, and anything left undone.
 
 ## 3. Report
 
-Give a table of position, issue, branch, base, and PR. Under it, list each conservative decision with its PR. If the stack stopped, name the failing item, why it failed, and the items not started.
+Give a table of position, issue, branch, base, PR, and self-review findings fixed and declined. Under it, list each conservative decision with its PR. If the stack stopped, name the failing item, why it failed, and the items not started.

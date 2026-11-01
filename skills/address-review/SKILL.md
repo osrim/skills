@@ -1,10 +1,10 @@
 ---
 name: address-review
-description: Trigger this when the user asks to check or address a PR's review comments.
+description: Trigger this when the user asks to check a PR's review comments, or to fix and answer them.
 argument-hint: "[pr-url|number] [draft]"
 ---
 
-# Address review comments
+# Address PR review comments
 
 Arguments: `$ARGUMENTS`
 
@@ -13,14 +13,26 @@ Arguments: `$ARGUMENTS`
 
 Without `draft`, the user's request authorizes committing and pushing fixes to the PR branch and posting replies, with no further confirmation.
 
+## Signature
+
+The signature opens every reply this skill posts and every `pr-review` review body:
+
+```text
+🤖 <your model display name>
+
+<reply>
+```
+
+Step 1 reads a thread whose latest comment is signed as already answered, so a reply without the signature gets answered again on the next run.
+
 ## 1. Collect the work list
 
 Check out the PR's head branch, level with its remote. Use an isolated checkout when the working tree has uncommitted changes. Fetch, reading every page:
 
 - **Threads:** unresolved review threads from GraphQL `pullRequest.reviewThreads` (`isResolved`, `isOutdated`, `path`, `line`, and each comment's `databaseId`, author, and body).
-- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor, such as the unanchored findings in an `inline-review` body.
+- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor, such as the unanchored findings in a `pr-review` body.
 
-Skip a thread whose latest comment starts with `🤖` (an earlier answer), and a review body that a later `🤖` PR comment already answers. Everything else is the work list.
+Skip a thread whose latest comment opens with the signature (an earlier answer), and a review body that a later signed PR comment already answers. Everything else is the work list.
 
 ## 2. Decide each comment
 
@@ -42,13 +54,7 @@ Commit the fixes in the repo's commit style (use the `commit-message` skill when
 
 ## 4. Reply
 
-Every reply opens with the model line, exactly as `inline-review` signs its reviews:
-
-```text
-🤖 <your model display name>
-
-<reply>
-```
+Every reply opens with the signature.
 
 - **Fix:** `Fixed in <short sha>: <what changed>.`
 - **Decline:** why, citing the evidence.

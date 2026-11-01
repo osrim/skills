@@ -1,0 +1,3 @@
+interface:
+  display_name: "PR description"
+  short_description: "Write a PR description focused on why"

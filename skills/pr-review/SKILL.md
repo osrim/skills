@@ -1,7 +1,12 @@
 ---
-name: inline-review
-description: Trigger this when the user asks for an inline review of a PR.
+name: pr-review
+description: Trigger this when the user asks to review a GitHub PR, or for an inline review of a PR.
 argument-hint: "[pr-url|number] [draft] [spec=<path|url|issue>]"
+metadata:
+  credits:
+    skill: code-review
+    author: Matt Pocock
+    url: "https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md"
 ---
 
 # Code review with inline comments
@@ -62,7 +67,7 @@ With `draft`, return the comments with their anchors and stop here.
 
 1. Drop findings that existing inline comments already cover (read every page). Re-read the head SHA; if it moved, review the new diff and revalidate the anchors.
 2. Anchor each finding to the smallest changed range: head line numbers with `side: RIGHT` for added lines, `side: LEFT` for removed lines. A finding with no valid anchor goes in the review body, marked as such.
-3. Submit one review: `event: COMMENT`, the pinned `commit_id`, and one `comments` item per finding (`path`, `line`, `side`, `body`, plus `start_line` and `start_side` for a range). Use a GitHub API tool, or write the payload to a JSON file and run `gh api repos/<owner>/<repo>/pulls/<number>/reviews --method POST --input <file>`. Review body: `🤖 <your model display name>`, then notes on unanchored findings or a skipped axis.
+3. Submit one review: `event: COMMENT`, the pinned `commit_id`, and one `comments` item per finding (`path`, `line`, `side`, `body`, plus `start_line` and `start_side` for a range). Use a GitHub API tool, or write the payload to a JSON file and run `gh api repos/<owner>/<repo>/pulls/<number>/reviews --method POST --input <file>`. Review body: the signature `address-review` defines (`🤖 <your model display name>`), then notes on unanchored findings or a skipped axis.
 4. Fetch the review's comments and check each body, path, anchor, and URL. Older API responses give `position` and `diff_hunk` in place of `line`. After a timeout, list existing reviews before a retry, so a retry never duplicates.
 
 With no new findings, submit the review with no `comments` and this body:

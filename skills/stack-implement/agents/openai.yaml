@@ -1,0 +1,3 @@
+interface:
+  display_name: "Stack implement"
+  short_description: "Implement issues as stacked PRs, one worktree each"
