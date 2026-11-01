@@ -1,0 +1,3 @@
+interface:
+  display_name: "Address review"
+  short_description: "Fix or answer every open review comment on a PR"

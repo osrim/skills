@@ -1,10 +1,10 @@
 ---
 name: address-review
-description: Trigger this when the user asks to check or address a PR's review comments.
+description: Trigger this when the user asks to check a PR's review comments, or to fix and answer them.
 argument-hint: "[pr-url|number] [draft]"
 ---
 
-# Address review comments
+# Address PR review comments
 
 Arguments: `$ARGUMENTS`
 
@@ -13,18 +13,32 @@ Arguments: `$ARGUMENTS`
 
 Without `draft`, the user's request authorizes committing and pushing fixes to the PR branch and posting replies, with no further confirmation.
 
+## Signature
+
+The signature opens every reply this skill posts and every `pr-review` review body:
+
+```text
+🤖 <your model display name>
+
+<reply>
+```
+
+Step 1 reads a thread whose latest comment is signed as already answered, so a reply without the signature gets answered again on the next run.
+
 ## 1. Collect the work list
 
 Check out the PR's head branch, level with its remote. Use an isolated checkout when the working tree has uncommitted changes. Fetch, reading every page:
 
 - **Threads:** unresolved review threads from GraphQL `pullRequest.reviewThreads` (`isResolved`, `isOutdated`, `path`, `line`, and each comment's `databaseId`, author, and body).
-- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor, such as the unanchored findings in an `inline-review` body.
+- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor: the unanchored findings in a `pr-review` body, and findings folded into `<details>` blocks, such as CodeRabbit's nitpick and outside-diff comments.
 
-Skip a thread whose latest comment starts with `🤖` (an earlier answer), and a review body that a later `🤖` PR comment already answers. Everything else is the work list.
+A review bot is still reviewing when it has a pending check or an in-progress comment on the head SHA. Wait until each one has posted or its check has completed, up to 15 minutes, using the harness's PR watch when it has one, otherwise checking every minute, and record each bot that timed out. Then collect.
+
+Skip a thread whose latest comment opens with the signature (an earlier answer), and a review body that a later signed PR comment already answers. Everything else is the work list. With an empty work list, report that and stop.
 
 ## 2. Decide each comment
 
-Read the commented code at the PR head and the code it connects to. Check each claim yourself: the reviewer's priority and confidence are not evidence. Give every comment on the work list exactly one outcome:
+Read the commented code at the PR head and the code it connects to. Check each claim yourself: the reviewer's priority and confidence are not evidence. Give every comment on the work list exactly one outcome. Comments that raise the same issue share one fix, and each gets its own reply.
 
 - **Fix:** the comment holds up. Make the smallest change that resolves it, in the repo's standards. An outdated thread that a later commit already fixed is a Fix with that commit.
 - **Decline:** the comment is wrong, out of scope, or conflicts with the spec or a repo rule. Record the evidence: code path, rule, spec line, or check output.
@@ -38,17 +52,11 @@ Run the narrowest checks that cover the fixes, plus the checks the repo document
 
 With `draft`, leave the fixes uncommitted and go to step 4.
 
-Commit the fixes in the repo's commit style (use the `commit-message` skill when installed), and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call.
+Commit the fixes, calling the Skill tool with `commit-message` before each commit, and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the commit fails on signing, keep the fixes staged, report the exact error once, and stop before replying. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call. The step is done when every Fix maps to a pushed commit.
 
 ## 4. Reply
 
-Every reply opens with the model line, exactly as `inline-review` signs its reviews:
-
-```text
-🤖 <your model display name>
-
-<reply>
-```
+Every reply opens with the signature.
 
 - **Fix:** `Fixed in <short sha>: <what changed>.`
 - **Decline:** why, citing the evidence.
