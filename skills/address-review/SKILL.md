@@ -32,6 +32,8 @@ Check out the PR's head branch, level with its remote. Use an isolated checkout 
 - **Threads:** unresolved review threads from GraphQL `pullRequest.reviewThreads` (`isResolved`, `isOutdated`, `path`, `line`, and each comment's `databaseId`, author, and body).
 - **Review bodies:** reviews whose body carries requested changes or findings with no line anchor: the unanchored findings in a `pr-review` body, and findings folded into `<details>` blocks, such as CodeRabbit's nitpick and outside-diff comments.
 
+A review bot is still reviewing when it has a pending check or an in-progress comment on the head SHA. Wait until each one has posted or its check has completed, up to 15 minutes, using the harness's PR watch when it has one, otherwise checking every minute, and record each bot that timed out. Then collect.
+
 Skip a thread whose latest comment opens with the signature (an earlier answer), and a review body that a later signed PR comment already answers. Everything else is the work list. With an empty work list, report that and stop.
 
 ## 2. Decide each comment
@@ -50,7 +52,7 @@ Run the narrowest checks that cover the fixes, plus the checks the repo document
 
 With `draft`, leave the fixes uncommitted and go to step 4.
 
-Commit the fixes in the repo's commit style (use the `commit-message` skill when installed), and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call. The step is done when every Fix maps to a pushed commit.
+Commit the fixes in the repo's commit style (use the `commit-message` skill when installed), and record which commit fixes which comment. Push to the PR branch with a plain `git push`. If the commit fails on signing, keep the fixes staged, report the exact error once, and stop before replying. If the push is rejected, stop and report: the remote moved, and integrating it is the user's call. The step is done when every Fix maps to a pushed commit.
 
 ## 4. Reply
 

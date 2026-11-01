@@ -6,7 +6,7 @@ Agent skills that I use every day.
 
 | Skill | What it does |
 | --- | --- |
-| [`ship`](skills/ship/SKILL.md) | Runs the whole flow below for an issue, a milestone, or a project: implement, settle open decisions with you, review on another provider, wait for review bots, address every comment, and restack. |
+| [`ship`](skills/ship/SKILL.md) | Runs the whole flow below for an issue, a milestone, or a project: implement, settle open decisions with you, review on another provider, address every comment once review bots finish, restack, and fix failing checks. |
 | [`stack-implement`](skills/stack-implement/SKILL.md) | Implements a list of issues as stacked PRs, one subagent and worktree per issue. Each subagent builds test-first, opens the PR, and self-reviews it with `pr-review draft`. |
 | [`pr-review`](skills/pr-review/SKILL.md) | Reviews a GitHub PR for standards, spec, and correctness in three sub-agents, then publishes inline comments. Based on Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md). |
 | [`address-review`](skills/address-review/SKILL.md) | Works through a PR's open review comments from models, bots, and people: fixes what holds up and replies to each thread, signed with the model. |
