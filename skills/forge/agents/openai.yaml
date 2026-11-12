@@ -1,0 +1,3 @@
+interface:
+  display_name: "Forge"
+  short_description: "Pick gh or tea from the remote and map each PR command"

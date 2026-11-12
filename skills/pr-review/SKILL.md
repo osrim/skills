@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Trigger this when the user asks to review a GitHub PR, or for an inline review of a PR.
+description: Trigger this when the user asks to review a GitHub or Gitea PR, or for an inline review of a PR.
 argument-hint: "[pr-url|number] [draft] [spec=<path|url|issue>]"
 metadata:
   credits:
@@ -13,7 +13,7 @@ metadata:
 
 Arguments: `$ARGUMENTS`
 
-- PR URL or number. Empty: the PR for the current branch (`gh pr view`).
+- PR URL or number. Empty: the PR for the current branch (**Find PR**).
 - `draft`: return the comments and publish nothing.
 - `spec=<path|url|issue>`: the spec source. It replaces spec discovery.
 
@@ -21,9 +21,11 @@ For several PRs, start one sub-agent per PR, with a fresh context window, that r
 
 Without `draft`, the user's request authorizes publishing. Publish after verification, with no further confirmation.
 
+The repository's `origin` decides the forge, GitHub or Gitea. Before the first PR command, call the Skill tool with `forge`, and run its command for each operation in bold.
+
 ## 1. Pin the review
 
-Fetch the PR's description, base and head SHAs, commits, changed files, checks, and existing reviews and comments. Review the exact head; use an isolated checkout when the working tree has uncommitted changes. Pin one comparison for every reviewer: `git diff <base>...<head>` and `git log <base>..<head> --oneline`. Confirm the diff is non-empty.
+Fetch the PR's description, base and head SHAs, commits, and changed files (**PR state**), its **Checks**, and its existing **Reviews** and **Review threads**. Review the exact head; use an isolated checkout when the working tree has uncommitted changes. Pin one comparison for every reviewer: `git diff <base>...<head>` and `git log <base>..<head> --oneline`. Confirm the diff is non-empty.
 
 ## 2. Gather sources
 
@@ -70,9 +72,9 @@ Spec comments start `Spec:`, quote the requirement, show the actual behavior, st
 With `draft`, return the comments with their anchors and stop here.
 
 1. Drop findings that existing inline comments already cover (read every page). Re-read the head SHA; if it moved, review the new diff and revalidate the anchors.
-2. Anchor each finding to the smallest changed range: head line numbers with `side: RIGHT` for added lines, `side: LEFT` for removed lines. A finding with no valid anchor goes in the review body, marked as such.
-3. Submit one review: `event: COMMENT`, the pinned `commit_id`, and one `comments` item per finding (`path`, `line`, `side`, `body`, plus `start_line` and `start_side` for a range). Use a GitHub API tool, or write the payload to a JSON file and run `gh api repos/<owner>/<repo>/pulls/<number>/reviews --method POST --input <file>`. Review body: the signature `address-review` defines (`🤖 <your model display name>`), then notes on unanchored findings or a skipped axis.
-4. Fetch the review's comments and check each body, path, anchor, and URL. Older API responses give `position` and `diff_hunk` in place of `line`. After a timeout, list existing reviews before a retry, so a retry never duplicates.
+2. Anchor each finding to the smallest changed range: the head line for an added line, the base line for a removed one, in the forge's review payload. A finding with no valid anchor goes in the review body, marked as such.
+3. Submit one review with **Submit review**, as the review login: `event: COMMENT`, the pinned `commit_id`, and one `comments` item per anchored finding. Review body: the signature `address-review` defines (`🤖 <your model display name>`), then notes on unanchored findings or a skipped axis.
+4. Fetch the review's comments (**Review comments**) and check each body, path, anchor, and URL. After a timeout, list existing **Reviews** before a retry, so a retry never duplicates.
 
 With no new findings, submit the review with no `comments` and this body, unless an earlier review on the same head SHA already reports no findings:
 
