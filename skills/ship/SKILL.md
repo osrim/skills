@@ -15,9 +15,7 @@ You are the orchestrator. Every PR gets two rounds of review: the private self r
 
 The user's request authorizes everything `stack-implement`, `pr-review`, and `address-review` authorize, plus force-pushing the stack's branches when restacking (step 5). Merging stays with the user.
 
-Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout. Tell each one that commits: before every commit, call the Skill tool with `commit-message`; before **Edit body**, call it with `pr-description`, passing the PR's base.
-
-The repository's `origin` decides the forge, GitHub or Gitea. Before the first PR command, call the Skill tool with `forge`, and run its command for each operation in bold. Tell every sub-agent to do the same.
+Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout. Tell each one that commits: before every commit, call the Skill tool with `commit-message`; before `gh pr edit --body`, call it with `pr-description`, passing the PR's base.
 
 ## 1. Implement
 
@@ -39,7 +37,7 @@ For each PR, start one child on the reviewer's provider, model, and effort with 
 - Call the Skill tool with `pr-review`, passing the PR, and publish the review.
 - Report the review URL, the head SHA reviewed, and the finding count per axis.
 
-Run the children in parallel. The step is done when every PR has a review signed `🤖` by the reviewer on its current head SHA (check with **Reviews**), or its child's error is recorded. A PR without that review goes on to step 4 with one round of review fewer.
+Run the children in parallel. The step is done when every PR has a review signed `🤖` by the reviewer on its current head SHA (check with `gh api repos/<owner>/<repo>/pulls/<number>/reviews`), or its child's error is recorded. A PR without that review goes on to step 4 with one round of review fewer.
 
 ## 4. Address the review
 
@@ -54,7 +52,7 @@ When questions come back, ask the user all of them in one grouped question set, 
 
 ## 5. Restack
 
-A PR **needs a restack** when its base is a stack branch and `git merge-base --is-ancestor origin/<base> origin/<branch>` fails, or when **PR state** shows a conflict.
+A PR **needs a restack** when its base is a stack branch and `git merge-base --is-ancestor origin/<base> origin/<branch>` fails, or when `gh pr view <pr> --json mergeable` reports `CONFLICTING`.
 
 Fetch `origin` and record the remote head SHA of the base branch and every stack branch. Then, for each PR from the bottom of the stack up, when it needs a restack, in its worktree with the local branch level with `origin/<branch>`:
 
@@ -66,7 +64,7 @@ On a conflict you cannot settle from those decisions, run `git rebase --abort`. 
 
 ## 6. Get the checks green
 
-Wait for the required checks on every PR's head (**Checks**), using the harness's PR watch when it has one, otherwise checking every minute. For each PR with a failed check, dispatch one sub-agent in its worktree to read the failing log (**Check log**), fix the cause in this PR, run the check locally, and push with a plain `git push`. When a fix lands below other PRs, run step 5 again. The step is done when every required check passes, or each PR has had one fix round; record the checks still failing.
+Wait for the required checks on every PR's head, using the harness's PR watch when it has one, otherwise checking every minute. For each PR with a failed check, dispatch one sub-agent in its worktree to read the failing log, fix the cause in this PR, run the check locally, and push with a plain `git push`. When a fix lands below other PRs, run step 5 again. The step is done when every required check passes, or each PR has had one fix round; record the checks still failing.
 
 ## 7. Report
 

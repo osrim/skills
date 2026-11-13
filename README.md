@@ -8,9 +8,8 @@ Agent skills that I use every day.
 | --- | --- |
 | [`ship`](skills/ship/SKILL.md) | Runs the whole flow below for an issue, a milestone, or a project: implement, settle open decisions with you, review on another provider, address every comment once review bots finish, restack, and fix failing checks. |
 | [`stack-implement`](skills/stack-implement/SKILL.md) | Implements a list of issues as stacked PRs, one subagent and worktree per issue. Each subagent builds test-first, opens the PR, and self-reviews it with `pr-review draft`. |
-| [`pr-review`](skills/pr-review/SKILL.md) | Reviews a GitHub or Gitea PR for standards, spec, and correctness in three sub-agents, then publishes inline comments. Based on Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md). |
+| [`pr-review`](skills/pr-review/SKILL.md) | Reviews a GitHub PR for standards, spec, and correctness in three sub-agents, then publishes inline comments. Based on Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md). |
 | [`address-review`](skills/address-review/SKILL.md) | Works through a PR's open review comments from models, bots, and people: fixes what holds up and replies to each thread, signed with the model. |
-| [`forge`](skills/forge/SKILL.md) | Picks the forge from the `origin` remote and gives the command for each PR operation: `gh` on GitHub, `tea` on Gitea. Signs Gitea reviews with the review login your instructions name. |
 
 ### How they fit
 
@@ -21,12 +20,11 @@ ship
 └─ address-review    fixes or answers pr-review, review bots, and people
 ```
 
-Every commit goes through `commit-message`, every PR body through
-`pr-description`, and every PR command through `forge`.
+Every commit goes through `commit-message`, and every PR body through
+`pr-description`.
 
 Each skill also runs on its own. Name your cross-provider reviewer in your
-`AGENTS.md` or `CLAUDE.md`, or pass `reviewer=` to `ship`. On Gitea, name
-the `tea` login that signs reviews there too, such as `review-bot`.
+`AGENTS.md` or `CLAUDE.md`, or pass `reviewer=` to `ship`.
 
 ## Writing
 
@@ -61,8 +59,7 @@ alongside the skills that use it:
 | Dependency | Used by | Required |
 | --- | --- | --- |
 | [`tdd`](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `stack-implement`, which builds each issue with it, and `ship`, which runs `stack-implement`. | Yes |
-| [`gh`](https://cli.github.com) on GitHub, [`tea`](https://gitea.com/gitea/tea) 0.16 or later on Gitea | `forge`, which every skill in the PR workflow runs for its PR commands. | Yes |
-| [`gh stack`](https://github.com/github/gh-stack) | On GitHub, `stack-implement`, which links the PRs into a GitHub stack that merges into the base branch, and `ship`, which runs `stack-implement`. Without it, `stack-implement` reports the link command for you to run. | No |
+| [`gh stack`](https://github.com/github/gh-stack) | `stack-implement`, which links the PRs into a GitHub stack that merges into the base branch, and `ship`, which runs `stack-implement`. Without it, `stack-implement` reports the link command for you to run. | No |
 | [`the-writing-whip`](https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11) | `commit-message` and `pr-description`. Without it, they use a short plain-writing rule. | No |
 
 ## Release
