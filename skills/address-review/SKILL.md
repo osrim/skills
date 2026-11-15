@@ -8,12 +8,10 @@ argument-hint: "[pr-url|number] [draft]"
 
 Arguments: `$ARGUMENTS`
 
-- PR URL or number. Empty: the PR for the current branch (**Find PR**).
+- PR URL or number. Empty: the PR for the current branch (`gh pr view`).
 - `draft`: make the fixes locally and return the replies. Commit, push, and post nothing.
 
 Without `draft`, the user's request authorizes committing and pushing fixes to the PR branch and posting replies, with no further confirmation.
-
-The repository's `origin` decides the forge, GitHub or Gitea. Before the first PR command, call the Skill tool with `forge`, and run its command for each operation in bold.
 
 ## Signature
 
@@ -31,10 +29,10 @@ Step 1 reads a thread whose latest comment is signed as already answered, so a r
 
 Check out the PR's head branch, level with its remote. Use an isolated checkout when the working tree has uncommitted changes. Fetch, reading every page:
 
-- **Threads:** unresolved threads from **Review threads**, each with its path, line, and outdated state, and each comment's ID, author, and body.
-- **Review bodies:** **Reviews** whose body carries requested changes or findings with no line anchor: the unanchored findings in a `pr-review` body, and findings folded into `<details>` blocks, such as CodeRabbit's nitpick and outside-diff comments.
+- **Threads:** unresolved review threads from GraphQL `pullRequest.reviewThreads` (`isResolved`, `isOutdated`, `path`, `line`, and each comment's `databaseId`, author, and body).
+- **Review bodies:** reviews whose body carries requested changes or findings with no line anchor: the unanchored findings in a `pr-review` body, and findings folded into `<details>` blocks, such as CodeRabbit's nitpick and outside-diff comments.
 
-A review bot is still reviewing when it has a pending check (**Checks**) or an in-progress comment on the head SHA. Wait until each one has posted or its check has completed, up to 15 minutes, using the harness's PR watch when it has one, otherwise checking every minute, and record each bot that timed out. Then collect.
+A review bot is still reviewing when it has a pending check or an in-progress comment on the head SHA. Wait until each one has posted or its check has completed, up to 15 minutes, using the harness's PR watch when it has one, otherwise checking every minute, and record each bot that timed out. Then collect.
 
 Skip a thread whose latest comment opens with the signature (an earlier answer), and a review body that a later signed PR comment already answers. Everything else is the work list. With an empty work list, report that and stop.
 
@@ -66,8 +64,8 @@ Every reply opens with the signature.
 
 With `draft`, return each reply with its thread link and stop here.
 
-1. Reply to each thread on its first comment with **Reply**.
-2. Answer review-body findings in one **Comment** on the PR, quoting each finding above its reply.
+1. Reply to each thread on its first comment: `gh api repos/<owner>/<repo>/pulls/<number>/comments/<first comment databaseId>/replies --method POST -f body=<body>`.
+2. Answer review-body findings in one PR comment (`gh pr comment`), quoting each finding above its reply.
 3. Leave threads unresolved; the reviewer resolves them.
 4. Fetch each thread and check that its reply landed once, with the right body. After a timeout, list the thread's comments before a retry, so a retry never duplicates.
 
