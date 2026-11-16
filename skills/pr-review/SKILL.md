@@ -27,7 +27,7 @@ Fetch the PR's description, base and head SHAs, commits, changed files, checks, 
 
 ## 2. Gather sources
 
-**Spec:** the `spec=` sources; else issues referenced in the PR description and commits, linked PRs, and matching files under `docs/`, `specs/` or `.scratch/`. Record each source. With no spec, skip the Spec axis and say so in the review body and the report.
+**Spec:** the `spec=` sources; else issues referenced in the PR description and commits, linked PRs, and matching files under `docs/`, `specs/` or `.scratch/`. Record each source and, for an issue, its parent. With no spec, skip the Spec axis and say so in the review body and the report.
 
 **Standards:** search the repo for every file that documents how code should be written: applicable `AGENTS.md`, `CLAUDE.md`, contribution guides, and the docs they reference. `CODING_STANDARDS.md` and `CONTRIBUTING.md` go on the list when they exist. Record each path and rule.
 
@@ -38,7 +38,7 @@ Start each reviewer as its own sub-agent with a fresh context window, so its fin
 Reviewers report and only you publish. Each report stays under 400 words and gives every finding a path, line or range, priority, evidence, and requested fix. The step is done when every reviewer has returned its report.
 
 - **Standards reviewer:** every documented-standard breach, citing source and rule, plus Fowler code smells in the introduced code (Mysterious Name, Duplicated Code, Feature Envy, Data Clumps, Primitive Obsession, Repeated Switches, Shotgun Surgery, Divergent Change, Speculative Generality, Message Chains, Middle Man, Refused Bequest), quoting the hunk. Repo standards override smells, and smells are judgement calls. Scope: issues the diff introduces that tooling does not enforce.
-- **Spec reviewer:** missing or partial requirements, unrequested scope, and incorrect implementations, each quoting the spec. Follow callers, config, and deployment behavior where they decide whether a requirement works. When one source is the parent of another, such as a spec and its ticket, the child sets the PR's scope: grade against the child's requirements and the decisions the parent records, and treat parent requirements that other sub-issues cover as out of scope.
+- **Spec reviewer:** missing or partial requirements, unrequested scope, and incorrect implementations, each quoting the spec. Follow callers, config, and deployment behavior where they decide whether a requirement works. When one source is the parent of another, such as a spec and its sub-issue, the sub-issue sets the PR's scope: grade against the sub-issue's requirements and the decisions the spec records, and treat spec requirements that other sub-issues cover as out of scope.
 - **Correctness reviewer:** reads the changed code and the code it connects to (callers, callees, tests), as the developer who gets paged when it breaks. It looks for:
   - **Bug:** a wrong result or crash on an edge case: empty, zero, last item, escaped or encoded forms, a caller the change breaks, a fix applied in one caller while the shared function stays broken.
   - **Risk:** missing checks on untrusted input, injection, leaked secrets, swallowed errors, data loss, copied third-party code or data shipped without the notice its license requires.

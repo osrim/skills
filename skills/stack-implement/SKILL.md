@@ -9,24 +9,24 @@ argument-hint: "<milestone, project, or issue list> [base branch]"
 Arguments: `$ARGUMENTS`
 
 - The source: a milestone, project, or list of issues (URLs or IDs).
-- The base branch for the first item. Empty: the repo's default branch.
+- The base branch for each stack's first item. Empty: the repo's default branch.
 
-You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch. A milestone or project gives one stack per spec.
+You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
 
-The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into a GitHub stack, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
+The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into GitHub stacks, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
 
 ## 1. Plan the stacks
 
-Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. On GitHub, read an issue's sub-issues with `gh api --paginate repos/<owner>/<repo>/issues/<n>/sub_issues` and its parent with `gh api repos/<owner>/<repo>/issues/<n>/parent`, which returns 404 when it has none; in a tracker such as Linear, read the issue's sub-issue and parent fields. Split the source into stacks:
+Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. On GitHub, each issue from `gh api repos/<owner>/<repo>/issues/<n>` or a milestone's REST issue list carries `sub_issues_summary.total`, above 0 for a spec, and `parent_issue_url` when it has a parent; read a spec's sub-issues with `gh api --paginate repos/<owner>/<repo>/issues/<n>/sub_issues`. In a tracker such as Linear, read the issue's sub-issue and parent fields. Split the source into stacks:
 
-- **An issue list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec with no open sub-issues adds no item; list it with the dropped specs.
+- **An issue list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec with no open sub-issues adds no item.
 - **A milestone or project** gives one stack per spec. Drop every spec, then group the remaining issues by parent: each parent's issues form one stack, and the issues with no parent form one more stack.
 
-Keep each issue once. Within each stack, order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside its stack, check that it is merged into the base branch; if one is not, leave that stack out of the run and report it with the blocker. When no stack has an item left, stop.
+Keep each issue once. Within each stack, order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside its stack, check that it is merged into the base branch; if one is not, leave out the blocked issue and every issue in its stack that depends on it, directly or through others. When no stack has an item left, stop.
 
 Name each item's branch in the repo's convention, falling back to `feat/<issue id in lowercase>`.
 
-Post the plan: for each stack, a numbered list of issue, parent spec (or none), branch, and base. Under it, list the dropped specs and the stacks left out, with their issues and blockers. The step is done when every open issue that is not a spec, from the source or a spec's sub-issues, appears exactly once in the plan, and every in-stack blocker sits above the issues it blocks. The plan is a record, so go straight on to step 2.
+Post the plan: for each stack, a numbered list of issue, parent spec (or none), branch, and base. Under it, list each spec from the source that no planned issue has as its parent, and each issue left out with its blocker. The step is done when every open issue that is not a spec, from the source or from expanding a spec in an issue list, appears exactly once in the plan, and every in-stack blocker sits above the issues it blocks. The plan is a record, so go straight on to step 2.
 
 ## 2. Build each item, in order
 
@@ -51,7 +51,7 @@ The brief carries this item's issue alone, so the delegate gives the whole of it
 - Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go, and the full test suite once at the end.
 - Before every commit, call the Skill tool with `commit-message`. Before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the base.
 - Commit, push the branch, and open a PR with `--base <base>`. The body links the issue. Leave the PR unmerged.
-- Self review: call the Skill tool with `pr-review`, passing the PR and `draft`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
+- Self review: call the Skill tool with `pr-review`, passing the PR, `draft`, and, when the issue has a parent spec, `spec=<issue URL> spec=<parent spec URL>`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
 - When a commit fails on signing, keep the changes staged and report the exact error; retry at most once.
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.
 - Report the PR URL, the head commit, the checks run with their results, each self-review finding with its outcome (or why `pr-review` could not run), every conservative decision, and anything left undone.
@@ -70,4 +70,4 @@ The step is done when `gh api repos/{owner}/{repo}/pulls/<top pr> --jq .stack` s
 
 ## 4. Report
 
-For each stack, give the stack number from `.stack.number`, then a table of position, issue, parent spec, branch, base, PR, and self-review findings fixed and declined, then the top PR's branch and worktree, where the dev server shows every change in that stack. Under the tables, list each conservative decision with its PR, the dropped specs, and the stacks left out with their blockers. If a stack stopped, name the failing item, why it failed, and the items not started. Remove the branches and worktrees this run created that hold no commits ahead of their base.
+For each stack, give the stack number from `.stack.number`, then a table of position, issue, parent spec, branch, base, PR, and self-review findings fixed and declined, then the top PR's branch and worktree, where the dev server shows every change in that stack. Under the tables, list each conservative decision with its PR, the specs no planned issue has as its parent, and the issues left out with their blockers. If a stack stopped, name the failing item, why it failed, and the items not started. Remove the branches and worktrees this run created that hold no commits ahead of their base.
