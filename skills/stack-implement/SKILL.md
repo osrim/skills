@@ -1,6 +1,6 @@
 ---
 name: stack-implement
-description: Trigger this when the user asks to implement several issues, or a milestone or project, as stacked PRs.
+description: Trigger this when the user asks to implement several issues, a spec's sub-issues, or a milestone or project, as stacked PRs.
 argument-hint: "<milestone, project, or issue list> [base branch]"
 ---
 
@@ -11,21 +11,26 @@ Arguments: `$ARGUMENTS`
 - The source: a milestone, project, or list of issues (URLs or IDs).
 - The base branch for the first item. Empty: the repo's default branch.
 
-You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
+You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch. A milestone or project gives one stack per spec.
 
 The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into a GitHub stack, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
 
-## 1. Plan the stack
+## 1. Plan the stacks
 
-Fetch every issue in the source, reading every page, and drop closed issues. Order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside the stack, check that it is merged into the base branch; if one is not, stop and report it.
+Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. On GitHub, read an issue's sub-issues with `gh api --paginate repos/<owner>/<repo>/issues/<n>/sub_issues` and its parent with `gh api repos/<owner>/<repo>/issues/<n>/parent`, which returns 404 when it has none; in a tracker such as Linear, read the issue's sub-issue and parent fields. Split the source into stacks:
+
+- **An issue list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec with no open sub-issues adds no item; list it with the dropped specs.
+- **A milestone or project** gives one stack per spec. Drop every spec, then group the remaining issues by parent: each parent's issues form one stack, and the issues with no parent form one more stack.
+
+Keep each issue once. Within each stack, order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside its stack, check that it is merged into the base branch; if one is not, leave that stack out of the run and report it with the blocker. When no stack has an item left, stop.
 
 Name each item's branch in the repo's convention, falling back to `feat/<issue id in lowercase>`.
 
-Post the plan as a numbered list of issue, branch, and base. The step is done when every issue in the source appears exactly once and every in-stack blocker sits above the issues it blocks. The plan is a record, so go straight on to step 2.
+Post the plan: for each stack, a numbered list of issue, parent spec (or none), branch, and base. Under it, list the dropped specs and the stacks left out, with their issues and blockers. The step is done when every open issue that is not a spec, from the source or a spec's sub-issues, appears exactly once in the plan, and every in-stack blocker sits above the issues it blocks. The plan is a record, so go straight on to step 2.
 
 ## 2. Build each item, in order
 
-For each item, from the top:
+Take the stacks one at a time, in the plan's order, through steps 2 and 3. Every stack's first item takes the base branch as its base. For each item, from the top:
 
 An earlier run may have left work behind. When the item's branch has an open PR, reuse the PR and the branch's worktree (`git worktree add <path> <branch>` when it has none), then go to check 3. When the branch exists without a PR, reuse it in the same way, skip creating it in 1, and tell the delegate about its earlier commits.
 
@@ -33,13 +38,13 @@ An earlier run may have left work behind. When the item's branch has an open PR,
 2. Dispatch one subagent, started with a fresh context window, with the brief below, and wait for its report. When it reports a commit that failed on signing, ask the user once to unlock the signer, then commit its staged changes yourself.
 3. Check the PR: `gh pr view <branch> --json url,state,baseRefName` shows an open PR whose base is the item's base. Correct a wrong base with `gh pr edit <branch> --base <base>`. Post the PR link with the stack position (`2/7`).
 
-The item is done when that check passes. The next item then starts, with this item's branch as its base. When an item ends without a PR, stop the stack and go to step 3 with the items that have PRs: every later item builds on this one.
+The item is done when that check passes. The next item then starts, with this item's branch as its base. When an item ends without a PR, stop its stack and go to step 3 with the items that have PRs: every later item builds on this one. The next stack then starts.
 
 ### Delegate brief
 
 The brief carries this item's issue alone, so the delegate gives the whole of its attention to it. Include:
 
-- The issue ID, its link, and the stack position.
+- The issue ID, its link, and the stack position, plus its parent spec's link when it has one.
 - The worktree path and branch. All work happens there, on that branch name.
 - The base branch, which is also the PR's base.
 - Move the issue to In Progress before starting.
@@ -53,7 +58,7 @@ The brief carries this item's issue alone, so the delegate gives the whole of it
 
 ## 3. Link the stack
 
-Without a GitHub stack, GitHub merges each PR into the branch below it, so merging the top PR lands only on the previous item's branch. Link every open PR, bottom to top, into one stack with the base branch as its trunk:
+Without a GitHub stack, GitHub merges each PR into the branch below it, so merging the top PR lands only on the previous item's branch. Link every open PR of the stack, bottom to top, into one GitHub stack with the base branch as its trunk:
 
 ```sh
 gh stack link --base <base> <pr 1> <pr 2> ... <pr n>
@@ -61,8 +66,8 @@ gh stack link --base <base> <pr 1> <pr 2> ... <pr n>
 
 Pass PR numbers, not branch names: `gh stack link` pushes branch arguments before it looks them up. Leave out `--base` and the trunk becomes the repo's default branch, which is wrong when the user named another base.
 
-The step is done when `gh api repos/{owner}/{repo}/pulls/<top pr> --jq .stack` shows `base.ref` equal to the base branch and `size` equal to the number of PRs. Skip the step when the stack has one PR. When `gh stack` is not installed (`gh extension list` has no `github/gh-stack`), skip the link and put the `gh stack link` command in the report for the user to run.
+The step is done when `gh api repos/{owner}/{repo}/pulls/<top pr> --jq .stack` shows `base.ref` equal to the base branch and `size` equal to the number of PRs in this stack. Skip the step when the stack has one PR. When `gh stack` is not installed (`gh extension list` has no `github/gh-stack`), skip the link and put the `gh stack link` command in the report for the user to run.
 
 ## 4. Report
 
-Give the stack number from `.stack.number`, then a table of position, issue, branch, base, PR, and self-review findings fixed and declined. Under it, list each conservative decision with its PR. Give the top PR's branch and worktree, where the dev server shows every change in the stack. If the stack stopped, name the failing item, why it failed, and the items not started. Remove the branches and worktrees this run created that hold no commits ahead of their base.
+For each stack, give the stack number from `.stack.number`, then a table of position, issue, parent spec, branch, base, PR, and self-review findings fixed and declined, then the top PR's branch and worktree, where the dev server shows every change in that stack. Under the tables, list each conservative decision with its PR, the dropped specs, and the stacks left out with their blockers. If a stack stopped, name the failing item, why it failed, and the items not started. Remove the branches and worktrees this run created that hold no commits ahead of their base.
