@@ -8,22 +8,24 @@ argument-hint: "<issue, milestone, project, or issue list> [base branch] [review
 
 Arguments: `$ARGUMENTS`
 
-- The source and base branch, exactly as `stack-implement` takes them; it plans one or more stacks from them. A list of open PRs skips to step 3, bottom of the stack first, with a worktree per PR branch and the repo's documented checks in place of the delegates' checks.
+- The source and base branch, exactly as `stack-implement` takes them; it plans one or more stacks from them. A list of open PRs skips to step 3, bottom of the stack first, with a worktree per PR branch and the repo's documented checks in place of the checks step 1 reports.
 - `reviewer=`: the cross-provider reviewer, such as `codex/gpt-6.1-sol:high`. Empty: the reviewer named in the user's instructions (`AGENTS.md`, `CLAUDE.md`). With neither, ask before step 3.
 
 You are the orchestrator. Every PR gets two rounds of review: the private self review `stack-implement` runs with `pr-review draft`, then a public `pr-review` by a model from a **different provider** than yours. `address-review` then fixes or answers every open comment on the PR: from that reviewer, from review bots such as CodeRabbit, and from humans.
 
 The user's request authorizes everything `stack-implement`, `pr-review`, and `address-review` authorize, plus force-pushing the stacks' branches when restacking (step 5). Merging stays with the user.
 
-Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout. Tell each one that commits: before every commit, call the Skill tool with `commit-message`; before `gh pr edit --body`, call it with `pr-description`, passing the PR's base.
+With one PR in the run, do the per-PR work of steps 2, 4, and 6 yourself, in its worktree, following the brief a sub-agent would get, so the user watches the work and can steer it. Ask the user each question when it comes up, in place of collecting it into a report. The step 3 reviewer stays a child, on the reviewer's provider. With more PRs, each step dispatches sub-agents as written.
+
+Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout. Tell each one that commits, and do the same when you commit: before every commit, call the Skill tool with `commit-message`; before `gh pr edit --body`, call it with `pr-description`, passing the PR's base.
 
 ## 1. Implement
 
-Call the Skill tool with `stack-implement`, passing the source and base branch. The step is done when its report is posted. Carry its tables (each item's parent spec among them), each item's worktree path, and the checks each delegate reported through every later step. When a stack stopped, the remaining steps cover only the PRs it opened.
+Call the Skill tool with `stack-implement`, passing the source and base branch. The step is done when its report is posted. Carry its tables (each item's parent spec among them), each item's worktree path, and the checks each item's builder reported through every later step. When a stack stopped, the remaining steps cover only the PRs it opened.
 
 ## 2. Settle the decisions
 
-Collect every conservative decision and every undone item from the delegate reports. Ask the user about all of them in one grouped question set: each question names its PR, the option taken, and what the alternative changes. With none, go to step 3.
+Collect every conservative decision and every undone item from the builders' reports. Ask the user about all of them in one grouped question set: each question names its PR, the option taken, and what the alternative changes. With none, go to step 3.
 
 For each PR with a changed decision or a requested follow-up, dispatch one sub-agent to apply the answers in its worktree, update the PR description's decision record, commit, and push with a plain `git push`. The step is done when every decision is confirmed or applied and pushed.
 
@@ -57,7 +59,7 @@ A PR **needs a restack** when its base is a stack branch and `git merge-base --i
 Fetch `origin` and record the remote head SHA of the base branch and every stack branch. Then, in each stack, for each PR from the bottom up, when it needs a restack, in its worktree with the local branch level with `origin/<branch>`:
 
 1. `git rebase --onto origin/<base> <recorded SHA of base> <branch>`. The recorded SHA bounds the rebase to this PR's own commits. Resolve conflicts in favour of the decisions the issues and reviews settled.
-2. Run the checks the delegate reported for this PR in step 1.
+2. Run the checks the builder reported for this PR in step 1.
 3. `git push --force-with-lease=<branch>:<recorded SHA of branch>`, then fetch `origin`.
 
 On a conflict you cannot settle from those decisions, run `git rebase --abort`. On a failed check, run `git reset --hard <recorded SHA of branch>`, which the remote still holds. Either way, stop restacking that stack and record the PR, the conflicting files or failing check, and the PRs above it. The step is done when no PR needs a restack, or each stack that still needs one has stopped.

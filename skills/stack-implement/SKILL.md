@@ -11,7 +11,7 @@ Arguments: `$ARGUMENTS`
 - The source: a milestone, project, or list of issues (URLs or IDs).
 - The base branch for each stack's first item. Empty: the repo's default branch.
 
-You are the orchestrator. Every issue gets its own worktree and its own subagent, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
+You are the orchestrator. Every issue gets its own worktree and a **builder**, which builds the issue test-first, opens its PR, and reviews it with `pr-review`. With one item in the plan, you are the builder; with more, each item gets its own subagent. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous item's branch, and the first PR's base is the base branch.
 
 The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into GitHub stacks, and moving each issue to In Progress, with no further confirmation. Merging stays with the user.
 
@@ -32,17 +32,19 @@ Post the plan: for each stack, a numbered list of issue, parent spec (or none), 
 
 Take the stacks one at a time, in the plan's order, through steps 2 and 3. Every stack's first item takes the base branch as its base. For each item, from the top:
 
-An earlier run may have left work behind. When the item's branch has an open PR, reuse the PR and the branch's worktree (`git worktree add <path> <branch>` when it has none), then go to check 3. When the branch exists without a PR, reuse it in the same way, skip creating it in 1, and tell the delegate about its earlier commits.
+An earlier run may have left work behind. When the item's branch has an open PR, reuse the PR and the branch's worktree (`git worktree add <path> <branch>` when it has none), then go to check 3. When the branch exists without a PR, reuse it in the same way, skip creating it in 1, and tell the builder about its earlier commits.
 
 1. Fetch `origin`, then create the item's worktree on a new branch from `origin/<base>`: the repo's worktree tool when it has one, otherwise `git worktree add -b <branch> <path> origin/<base>`.
-2. Dispatch one subagent, started with a fresh context window, with the brief below, and wait for its report. When it reports a commit that failed on signing, ask the user once to unlock the signer, then commit its staged changes yourself.
+2. Build the item with the brief below.
+   - **One item in the plan:** follow the brief yourself, in the item's worktree, so the user watches the work and can steer it. Ask the user about an ask-first decision when it comes up, and record the answer in the PR description. On a commit that fails on signing, ask the user to unlock the signer, then commit.
+   - **More items:** dispatch one subagent per item, started with a fresh context window, so each item's context stays out of the next, and wait for its report. When it reports a commit that failed on signing, ask the user once to unlock the signer, then commit its staged changes yourself.
 3. Check the PR: `gh pr view <branch> --json url,state,baseRefName` shows an open PR whose base is the item's base. Correct a wrong base with `gh pr edit <branch> --base <base>`. Post the PR link with the stack position (`2/7`).
 
 The item is done when that check passes. The next item then starts, with this item's branch as its base. When an item ends without a PR, stop its stack and go to step 3 with the items that have PRs: every later item builds on this one. The next stack then starts.
 
-### Delegate brief
+### Build brief
 
-The brief carries this item's issue alone, so the delegate gives the whole of its attention to it. Include:
+The brief carries this item's issue alone, so the builder gives the whole of its attention to it. Include:
 
 - The issue ID, its link, and the stack position, plus its parent spec's link when it has one.
 - The worktree path and branch. All work happens there, on that branch name.
