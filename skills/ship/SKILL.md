@@ -35,7 +35,7 @@ For each PR with a changed decision or a requested follow-up, dispatch one sub-a
 
 Resolve the reviewer. It must run on a different provider from yours; when it matches yours, ask for another.
 
-For each PR, start one child on the reviewer's provider, model, and effort with the harness's cross-provider delegation. The PR's **spec arguments** are `spec=<issue URL> spec=<parent spec URL>` when its issue has a parent spec (from step 1's tables; for a list of PRs, from the issue each PR closes, `gh pr view <pr> --json closingIssuesReferences`, and its `parent_issue_url` or the tracker's parent field), and none otherwise, so the Spec axis grades against the spec as well as the issue. When the harness has no cross-provider delegation, tell the user, give the `/pr-review <PR URL>` command with the spec arguments to run on the reviewer, and wait for them to confirm it ran. The brief:
+For each PR, start one child on the reviewer's provider, model, and effort with the harness's cross-provider delegation. The PR's **spec arguments** are `spec=<issue URL> spec=<parent spec URL>` when its issue has a parent spec (from step 1's tables; for a list of PRs, from the issue each PR closes and its parent, found with the tracker's workflow), and none otherwise, so the Spec axis grades against the spec as well as the issue. When the harness has no cross-provider delegation, tell the user, give the `/pr-review <PR URL>` command with the spec arguments to run on the reviewer, and wait for them to confirm it ran. The brief:
 
 - The PR URL and its worktree path, which the child only reads.
 - Call the Skill tool with `pr-review`, passing the PR and its spec arguments, and publish the review.
