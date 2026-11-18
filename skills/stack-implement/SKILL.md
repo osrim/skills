@@ -22,7 +22,7 @@ Fetch every issue in the source, reading every page, and drop closed issues. A *
 - **An issue list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec with no open sub-issues adds no item.
 - **A milestone or project** gives one stack per spec. Drop every spec, then group the remaining issues by parent: each parent's issues form one stack, and the issues with no parent form one more stack.
 
-Keep each issue once. Within each stack, order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. For each blocker outside its stack, check that it is merged into the base branch; if one is not, leave out the blocked issue and every issue in its stack that depends on it, directly or through others. When no stack has an item left, stop.
+Keep each issue once. Within each stack, order the issues so each one comes after every in-stack issue that blocks it, and break ties by the source's order. A blocker outside its stack is cleared when its PR is merged into the base branch, or, when it has no PR (a decision or a prototype), when the tracker shows it closed as done. For each blocker that is not cleared, leave out the blocked issue and every issue in its stack that depends on it, directly or through others. When no stack has an item left, stop.
 
 Name each item's branch in the repo's convention, falling back to `feat/<issue id in lowercase>`.
 
