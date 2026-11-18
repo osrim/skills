@@ -17,7 +17,9 @@ The user's request authorizes creating the branches and worktrees, pushing them,
 
 ## 1. Plan the stacks
 
-Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. On GitHub, each issue from `gh api repos/<owner>/<repo>/issues/<n>` or a milestone's REST issue list carries `sub_issues_summary.total`, above 0 for a spec, and `parent_issue_url` when it has a parent; read a spec's sub-issues with `gh api --paginate repos/<owner>/<repo>/issues/<n>/sub_issues`. In a tracker such as Linear, read the issue's sub-issue and parent fields. Split the source into stacks:
+Read the repo's tracker workflow from `docs/agents/issue-tracker.md`, which `/setup-matt-pocock-skills` writes, and use it for every tracker read and write. Without that file, use GitHub Issues when the repo's remote is on GitHub; otherwise tell the user to run `/setup-matt-pocock-skills`, and stop.
+
+Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. On GitHub, each issue from `gh api repos/<owner>/<repo>/issues/<n>` or a milestone's REST issue list carries `sub_issues_summary.total`, above 0 for a spec, and `parent_issue_url` when it has a parent; read a spec's sub-issues with `gh api --paginate repos/<owner>/<repo>/issues/<n>/sub_issues`. In another tracker, read the issue's sub-issue and parent fields. Split the source into stacks:
 
 - **An issue list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec with no open sub-issues adds no item.
 - **A milestone or project** gives one stack per spec. Drop every spec, then group the remaining issues by parent: each parent's issues form one stack, and the issues with no parent form one more stack.
@@ -49,7 +51,7 @@ The brief carries this item's issue alone, so the builder gives the whole of its
 - The issue ID, its link, and the stack position, plus its parent spec's link when it has one.
 - The worktree path and branch. All work happens there, on that branch name.
 - The base branch, which is also the PR's base.
-- Move the issue to In Progress before starting.
+- Move the issue to In Progress before starting, with the tracker workflow from step 1.
 - Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go. The build is done when one full test suite run passes after your last change: start it in the background where the harness can, and write the docs meanwhile. On a failure, re-run only the failing test until it passes, then run the full suite once more.
 - Before every commit, call the Skill tool with `commit-message`. Before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the base.
 - Commit, push the branch, and open a PR with `--base <base>`. The body links the issue. Leave the PR unmerged.
