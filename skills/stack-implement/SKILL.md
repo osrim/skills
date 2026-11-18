@@ -17,7 +17,9 @@ The user's request authorizes creating the branches and worktrees, pushing them,
 
 ## 1. Plan the stacks
 
-Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. On GitHub, each issue from `gh api repos/<owner>/<repo>/issues/<n>` or a milestone's REST issue list carries `sub_issues_summary.total`, above 0 for a spec, and `parent_issue_url` when it has a parent; read a spec's sub-issues with `gh api --paginate repos/<owner>/<repo>/issues/<n>/sub_issues`. In a tracker such as Linear, read the issue's sub-issue and parent fields. Split the source into stacks:
+The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`. Use its workflow for every issue read and write below.
+
+Fetch every issue in the source, reading every page, and drop closed issues. A **spec** is an issue with sub-issues. Read each issue's parent and each spec's sub-issues. Split the source into stacks:
 
 - **An issue list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec with no open sub-issues adds no item.
 - **A milestone or project** gives one stack per spec. Drop every spec, then group the remaining issues by parent: each parent's issues form one stack, and the issues with no parent form one more stack.
@@ -49,11 +51,11 @@ The brief carries this item's issue alone, so the builder gives the whole of its
 - The issue ID, its link, and the stack position, plus its parent spec's link when it has one.
 - The worktree path and branch. All work happens there, on that branch name.
 - The base branch, which is also the PR's base.
-- Move the issue to In Progress before starting.
-- Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go, and the full test suite once at the end.
+- Move the issue to In Progress before starting, with the tracker's workflow.
+- Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go. The build is done when one full test suite run passes after your last change: start it in the background where the harness can, and write the docs meanwhile. On a failure, re-run only the failing test until it passes, then run the full suite once more.
 - Before every commit, call the Skill tool with `commit-message`. Before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the base.
 - Commit, push the branch, and open a PR with `--base <base>`. The body links the issue. Leave the PR unmerged.
-- Self review: call the Skill tool with `pr-review`, passing the PR, `draft`, and, when the issue has a parent spec, `spec=<issue URL> spec=<parent spec URL>`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
+- Self review: call the Skill tool with `pr-review`, passing the PR, `draft`, and, when the issue has a parent spec, `spec=<issue URL> spec=<parent spec URL>`. Fix every finding that holds up, run the typecheck, lint, and the tests that exercise the changed files, then commit and push. CI runs the full suite on the push. The self review is done when every finding is fixed or declined with evidence.
 - When a commit fails on signing, keep the changes staged and report the exact error; retry at most once.
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.
 - Report the PR URL, the head commit, the checks run with their results, each self-review finding with its outcome (or why `pr-review` could not run), every conservative decision, and anything left undone.

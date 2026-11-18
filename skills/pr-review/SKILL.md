@@ -27,7 +27,9 @@ Fetch the PR's description, base and head SHAs, commits, changed files, checks, 
 
 ## 2. Gather sources
 
-**Spec:** the `spec=` sources; else issues referenced in the PR description and commits, linked PRs, and matching files under `docs/`, `specs/` or `.scratch/`. Record each source and, for an issue, its parent. With no spec, skip the Spec axis and say so in the review body and the report.
+The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
+
+**Spec:** the `spec=` sources; else issues referenced in the PR description and commits (fetched with the tracker's workflow), linked PRs, and matching files under `docs/`, `specs/` or `.scratch/`. Record each source and, for an issue, its parent. With no spec, skip the Spec axis and say so in the review body and the report.
 
 **Standards:** search the repo for every file that documents how code should be written: applicable `AGENTS.md`, `CLAUDE.md`, contribution guides, and the docs they reference. `CODING_STANDARDS.md` and `CONTRIBUTING.md` go on the list when they exist. Record each path and rule.
 
