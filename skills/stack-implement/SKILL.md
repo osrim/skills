@@ -50,10 +50,10 @@ The brief carries this item's issue alone, so the builder gives the whole of its
 - The worktree path and branch. All work happens there, on that branch name.
 - The base branch, which is also the PR's base.
 - Move the issue to In Progress before starting.
-- Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go, and the full test suite once at the end.
+- Build the issue: call the Skill tool with `tdd`, where possible at the seams the issue or its spec agrees. Run the typecheck and single test files as you go. The build is done when one full test suite run passes after your last change: start it in the background where the harness can, and write the docs meanwhile. On a failure, re-run only the failing test until it passes, then run the full suite once more.
 - Before every commit, call the Skill tool with `commit-message`. Before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the base.
 - Commit, push the branch, and open a PR with `--base <base>`. The body links the issue. Leave the PR unmerged.
-- Self review: call the Skill tool with `pr-review`, passing the PR, `draft`, and, when the issue has a parent spec, `spec=<issue URL> spec=<parent spec URL>`. Fix every finding that holds up, run the full test suite, then commit and push. The self review is done when every finding is fixed or declined with evidence.
+- Self review: call the Skill tool with `pr-review`, passing the PR, `draft`, and, when the issue has a parent spec, `spec=<issue URL> spec=<parent spec URL>`. Fix every finding that holds up, run the typecheck, lint, and the tests that exercise the changed files, then commit and push. CI runs the full suite on the push. The self review is done when every finding is fixed or declined with evidence.
 - When a commit fails on signing, keep the changes staged and report the exact error; retry at most once.
 - When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and the issue does not settle it, take the most conservative option and record it in the PR description and the report.
 - Report the PR URL, the head commit, the checks run with their results, each self-review finding with its outcome (or why `pr-review` could not run), every conservative decision, and anything left undone.
