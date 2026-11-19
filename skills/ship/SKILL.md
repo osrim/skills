@@ -1,7 +1,7 @@
 ---
 name: ship
-description: Trigger this when the user asks to ship an issue, a milestone, or a project end to end.
-argument-hint: "<issue, milestone, project, or issue list> [base branch] [reviewer=<provider>/<model>[:<effort>]]"
+description: Trigger this when the user asks to ship a spec, a ticket, a milestone, or a project end to end.
+argument-hint: "<spec, ticket, milestone, project, or ticket list> [base branch] [reviewer=<provider>/<model>[:<effort>]]"
 ---
 
 # Ship
@@ -23,7 +23,7 @@ After each builder's one full test suite run, every fix round runs only the **co
 
 ## 1. Implement
 
-Call the Skill tool with `stack-implement`, passing the source and base branch. Start step 3 for each PR as soon as you know it is open: when you open it yourself, or when `stack-implement` posts its link. The step is done when `stack-implement`'s report is posted. Carry its tables (each item's parent spec among them), each item's worktree path, and the checks each item's builder reported through every later step. When a stack stopped, the remaining steps cover only the PRs it opened.
+Call the Skill tool with `stack-implement`, passing the source and base branch. Start step 3 for each PR as soon as you know it is open: when you open it yourself, or when `stack-implement` posts its link. The step is done when `stack-implement`'s report is posted. Carry its tables (each ticket's parent spec among them), each ticket's worktree path, and the checks each ticket's builder reported through every later step. When a stack stopped, the remaining steps cover only the PRs it opened.
 
 ## 2. Settle the decisions
 
@@ -35,7 +35,7 @@ For each PR with a changed decision or a requested follow-up, dispatch one sub-a
 
 Resolve the reviewer. It must run on a different provider from yours; when it matches yours, ask for another.
 
-For each PR, start one child on the reviewer's provider, model, and effort with the harness's cross-provider delegation. The PR's **spec arguments** are `spec=<issue URL> spec=<parent spec URL>` when its issue has a parent spec (from step 1's tables; for a list of PRs, from the issue each PR closes and its parent, found with the tracker's workflow), and none otherwise, so the Spec axis grades against the spec as well as the issue. When the harness has no cross-provider delegation, tell the user, give the `/pr-review <PR URL>` command with the spec arguments to run on the reviewer, and wait for them to confirm it ran. The brief:
+For each PR, start one child on the reviewer's provider, model, and effort with the harness's cross-provider delegation. The PR's **spec arguments** are `spec=<ticket URL> spec=<parent spec URL>` when its ticket has a parent spec (from step 1's tables; for a list of PRs, from the ticket each PR closes and its parent, found with the tracker's workflow), and none otherwise, so the Spec axis grades against the spec as well as the ticket. When the harness has no cross-provider delegation, tell the user, give the `/pr-review <PR URL>` command with the spec arguments to run on the reviewer, and wait for them to confirm it ran. The brief:
 
 - The PR URL and its worktree path, which the child only reads.
 - Call the Skill tool with `pr-review`, passing the PR and its spec arguments, and publish the review.
@@ -62,7 +62,7 @@ A PR **needs a restack** when its base is a stack branch and `git merge-base --i
 
 Fetch `origin` and record the remote head SHA of the base branch and every stack branch. Then, in each stack, for each PR from the bottom up, when it needs a restack, in its worktree with the local branch level with `origin/<branch>`:
 
-1. `git rebase --onto origin/<base> <recorded SHA of base> <branch>`. The recorded SHA bounds the rebase to this PR's own commits. Resolve conflicts in favour of the decisions the issues and reviews settled.
+1. `git rebase --onto origin/<base> <recorded SHA of base> <branch>`. The recorded SHA bounds the rebase to this PR's own commits. Resolve conflicts in favour of the decisions the tickets, specs, and reviews settled.
 2. Run the checks the builder reported for this PR in step 1.
 3. `git push --force-with-lease=<branch>:<recorded SHA of branch>`, then fetch `origin`.
 
@@ -70,7 +70,7 @@ On a conflict you cannot settle from those decisions, run `git rebase --abort`. 
 
 ## 6. Report
 
-Report without waiting for CI. For each stack, give a table of position, PR, parent spec, self-review findings, reviewer findings, `address-review` outcomes (fix, decline, answer), restack result, and checks (passed, pending, or failed, from `gh pr checks <pr>`), and the top PR's branch and worktree, where the dev server shows every change in that stack. Then list what waits on the user: requested human reviewers who have not reviewed, bots that timed out, unanswered questions, failed checks, a stopped restack with its cause, and from `stack-implement`'s report the issues left out with their blockers, the specs no planned issue has as its parent, stopped stacks, and any `gh stack link` command left to run. Bots may review again after the force-pushes; run `address-review` on a PR to answer them.
+Report without waiting for CI. For each stack, give a table of position, PR, parent spec, self-review findings, reviewer findings, `address-review` outcomes (fix, decline, answer), restack result, and checks (passed, pending, or failed, from `gh pr checks <pr>`), and the top PR's branch and worktree, where the dev server shows every change in that stack. Then list what waits on the user: requested human reviewers who have not reviewed, bots that timed out, unanswered questions, failed checks, a stopped restack with its cause, and from `stack-implement`'s report the issues left out with their reasons, the specs no planned ticket has as its parent, stopped stacks, and any `gh stack link` command left to run. Bots may review again after the force-pushes; run `address-review` on a PR to answer them.
 
 ## 7. Watch the checks
 
