@@ -1,7 +1,7 @@
 ---
 name: stack-implement
-description: Trigger this when the user asks to implement a spec, several tickets, or a milestone or project, as stacked PRs.
-argument-hint: "<spec, milestone, project, or ticket list> [base branch]"
+description: Trigger this when the user asks to implement a spec, several tickets, a milestone, or a project.
+argument-hint: "<spec, milestone, project, or ticket list> [base branch] [notes=<dir>] [no-review]"
 ---
 
 # Stack implement
@@ -9,13 +9,15 @@ argument-hint: "<spec, milestone, project, or ticket list> [base branch]"
 Arguments: `$ARGUMENTS`
 
 - The source: a spec, a milestone, a project, or a list of tickets (URLs or IDs).
-- The base branch for each stack's first ticket. Empty: the repo's default branch.
+- The base branch every integration branch starts from. Empty: the repo's default branch.
+- `notes=<dir>`: the run notes directory. Empty: create one outside the repo, in the harness's scratch directory when it has one.
+- `no-review`: skip step 3, because the caller reviews the PRs.
 
-This skill is the build step of Matt Pocock's main flow, run at scale: after `to-spec` and `to-tickets`, it does what `implement` does, once per ticket in a fresh context, and lands the tickets as stacked PRs. `implement` runs only when the user invokes it, so the build brief below carries its steps, with `pr-review` in place of `code-review`.
+This skill is Matt Pocock's `implement-spec`, run for every spec in the source. Each spec's tickets land on one **integration branch** with one PR. The tickets are a task graph: the **frontier** is every ticket whose blockers are merged, and the whole frontier builds at once.
 
-You are the orchestrator. Every ticket gets its own worktree and a **builder**, which builds the ticket test-first, opens its PR, and reviews it with `pr-review`. With one ticket in the plan, you are the builder; with more, each ticket gets its own subagent. Each branch starts from the branch before it, so the PRs form a **stack**: every PR's base is the previous ticket's branch, and the first PR's base is the base branch.
+You are the orchestrator. Every ticket gets its own worktree and a **builder**, a subagent started with a fresh context window, in the background where the harness can. The builder builds the ticket test-first and commits; you merge its branch into the integration branch, push, and open the PR. With one ticket in the plan, you are the builder, so the user watches the work and can steer it.
 
-The user's request authorizes creating the branches and worktrees, pushing them, opening the PRs, linking them into GitHub stacks, and moving each ticket to In Progress, with no further confirmation. Merging stays with the user.
+The user's request authorizes creating the branches and worktrees, pushing the integration branches, opening their PRs, and moving each ticket to In Progress, with no further confirmation. Merging a PR stays with the user.
 
 ## Vocabulary
 
@@ -25,64 +27,115 @@ The words are Matt Pocock's. Sort every issue the source brings in, in this orde
 - **Spec**: what `to-spec` publishes. An issue with sub-issues, or one whose body has `to-spec`'s `## Problem Statement` and `## User Stories` sections. A spec with no sub-issues is **unticketed**: `to-tickets` has not split it yet, so it has nothing to build.
 - **Ticket**: every other issue. A sub-issue of a spec is what `to-tickets` publishes; a standalone one may come from `triage`. Its **blocking edges** name the tickets that gate it.
 - **Triage state**: the ticket's triage role, read through the repo's triage-label mapping. A ticket is **buildable** when its state is `ready-for-agent` or it has none; `ready-for-human`, `needs-triage`, `needs-info`, and `wontfix` are not.
+- **Visual ticket**: a ticket that changes what a screen looks like: layout, a new component, styling, or on-screen copy.
 
-## 1. Plan the stacks
+## Run rules
+
+- **Wait by ending the turn.** After you start background work, end the turn; its completion brings you back. Every turn you take starts work, merges work, or reports a result. When the harness cannot run a subagent in the background, run it in the foreground.
+- **Decide and record.** With more than one ticket in the plan, the user is away: put no question to them after step 1. When a choice comes up that the ticket and its spec leave open, take the recommended or most conservative option and append it to `<notes>/decisions.md` as the ticket, the question, the option taken, and what the alternative changes. You alone write that file, from the builders' reports.
+- **Park on schema, auth, or public API.** A choice in one of those areas that the ticket and its spec leave open parks its ticket: the ticket and every ticket it blocks leave the frontier, the question goes under `## Needs your answer` in `<notes>/decisions.md` with a recommendation, and the rest of the run goes on.
+- **Covering checks.** Builders and mergers run only the typecheck, the lint, and the tests that exercise the files they changed. CI runs the full suite on every push.
+
+## 1. Plan
 
 The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`. Use its workflow for every issue read and write below.
 
-Fetch every issue in the source, reading every page, and drop closed issues. Read each issue's parent and labels, and each spec's sub-issues. Leave out, wherever it appears in the source or among a spec's sub-issues, with its reason: every wayfinder issue (clear the map, then run `/to-spec`), every unticketed spec (run `/to-tickets` on it), and every ticket that is not buildable (its triage state). Split the rest into stacks:
+Fetch every issue in the source, reading every page, and drop closed issues. Read each issue's parent, labels, and blocking edges, and each spec's sub-issues. Leave out, wherever it appears in the source or among a spec's sub-issues, with its reason: every wayfinder issue (clear the map, then run `/to-spec`), every unticketed spec (run `/to-tickets` on it), and every ticket that is not buildable (its triage state). Replace each remaining spec with its open sub-issues until no item is a spec, and keep each ticket once. Then split the tickets into integration branches:
 
-- **A spec or a ticket list** is one stack. Replace each spec in it with its open sub-issues, in the tracker's order, until no item is a spec. A spec whose sub-issues are all closed adds no ticket.
-- **A milestone or project** gives one stack per spec. Drop every spec, then group the remaining tickets by parent: each parent's tickets form one stack, and the tickets with no parent form one more stack.
+- The tickets of one parent spec share one integration branch.
+- Tickets with no parent spec share an integration branch only when blocking edges join them. Every other one gets its own.
 
-Keep each ticket once. Within each stack, order the tickets so each one comes after every in-stack ticket that blocks it, and break ties by the source's order. A blocker outside its stack is cleared when its PR is merged into the base branch, or, when it has no PR (a decision or a prototype), when the tracker shows it closed as done. For each blocker that is not cleared, leave out the blocked ticket and every ticket in its stack that depends on it, directly or through others. When no stack has a ticket left, stop.
+A blocker outside the plan is cleared when its PR is merged into the base branch, or, when it has no PR (a decision or a prototype), when the tracker shows it closed as done. For each blocker that is not cleared, leave out the blocked ticket and every ticket that depends on it, directly or through others. When no ticket is left, stop.
 
-Name each ticket's branch in the repo's convention, falling back to `feat/<ticket id in lowercase>`.
+Name each integration branch in the repo's convention, falling back to `feat/<spec or ticket id in lowercase>`, and each ticket branch `<integration branch>-<ticket id in lowercase>`. Ticket branches stay local.
 
-Post the plan: for each stack, a numbered list of ticket, parent spec (or none), branch, and base. Under it, list each spec from the source that no planned ticket has as its parent, and each issue left out with its reason: its open blocker, its triage state, or the skill to run first. The step is done when every open issue from the source, or from expanding a spec, appears exactly once: as a planned ticket, as a spec, or as left out with its reason, and every in-stack blocker sits above the tickets it blocks. The plan is a record, so go straight on to step 2.
+Write the run notes, which every later brief points to in place of restating them:
 
-## 2. Build each ticket, in order
+- `tickets/<ticket id>.md` and `specs/<spec id>.md`: each issue's title, link, and body, as fetched.
+- `checks.md`, unless the notes already hold one: the repo's exact commands for the typecheck, the lint, one test file, the full suite, the browser suite, and the dev server, taken from its docs and scripts, and whether CI runs the full suite on a push.
+- `decisions.md`: empty.
 
-Take the stacks one at a time, in the plan's order, through steps 2 and 3. Every stack's first ticket takes the base branch as its base. For each ticket, from the top:
+For each visual ticket, get its **look** before any build: the mockup or screenshot the ticket carries, or else one subagent per ticket, started with a fresh context window, that calls the Skill tool with `prototype` and saves a mockup image under `looks/` in the notes. Show every look to the user in one message, each under its ticket ID. A visual ticket joins the frontier when the user approves its look; save what they said to `looks/<ticket id>.md`.
 
-An earlier run may have left work behind. When the ticket's branch has an open PR, reuse the PR and the branch's worktree (`git worktree add <path> <branch>` when it has none), then go to check 3. When the branch exists without a PR, reuse it in the same way, skip creating it in 1, and tell the builder about its earlier commits.
+Post the plan: for each integration branch, its base and a list of ticket, parent spec (or none), ticket branch, blockers, and whether it waits on a look. Under it, list each spec from the source that no planned ticket has as its parent, each issue left out with its reason (its open blocker, its triage state, or the skill to run first), and the notes directory. The step is done when every open issue from the source, or from expanding a spec, appears exactly once: as a planned ticket, as a spec, or as left out with its reason. The plan is a record, so go straight on to step 2 while the looks are made and answered.
 
-1. Fetch `origin`, then create the ticket's worktree on a new branch from `origin/<base>`: the repo's worktree tool when it has one, otherwise `git worktree add -b <branch> <path> origin/<base>`.
-2. Build the ticket with the brief below.
-   - **One ticket in the plan:** follow the brief yourself, in the ticket's worktree, so the user watches the work and can steer it. Ask the user about an ask-first decision when it comes up, and record the answer in the PR description. On a commit that fails on signing, ask the user to unlock the signer, then commit.
-   - **More tickets:** dispatch one subagent per ticket, started with a fresh context window, so each ticket's context stays out of the next, and wait for its report. When it reports a commit that failed on signing, ask the user once to unlock the signer, then commit its staged changes yourself.
-3. Check the PR: `gh pr view <branch> --json url,state,baseRefName` shows an open PR whose base is the ticket's base. Correct a wrong base with `gh pr edit <branch> --base <base>`. Post the PR link with the stack position (`2/7`).
+## 2. Build the frontier
 
-The ticket is done when that check passes. The next ticket then starts, with this ticket's branch as its base. When a ticket ends without a PR, stop its stack and go to step 3 with the tickets that have PRs: every later ticket builds on this one. The next stack then starts.
+An earlier run may have left work behind. Reuse an integration branch that exists, with its worktree and its PR. A ticket whose merge commit is on it (`git log --merges --grep '<ticket id>' origin/<integration branch>`) is built. A ticket branch that exists without a merge keeps its commits: reuse it and tell the builder about them.
+
+Fetch `origin`, then give each integration branch a worktree on a new branch from `origin/<base>`: the repo's worktree tool when it has one, otherwise `git worktree add -b <branch> <path> origin/<base>`.
+
+A ticket is on the frontier when it is not built, not parked, not waiting on a look, and every blocker it has in the plan is merged into its integration branch. Repeat until the frontier is empty and no builder is running:
+
+1. **Start** every ticket on the frontier: create its worktree on its ticket branch from the tip of its integration branch, and dispatch a builder with the build brief. An integration branch with one ticket has no ticket branch: its builder works in the integration worktree.
+2. **Wait** by ending the turn.
+3. **Merge** each builder that reports a head commit, one merge at a time, in the integration worktree: `git merge --no-ff <ticket branch> -m "Merge <ticket id>: <ticket title>"`. On a conflict, dispatch a merger subagent with a fresh context window, pointed at the two tickets' notes, to resolve it in favour of what the tickets and the spec settled, run the covering checks for the conflicted files, and commit. Then push the integration branch with a plain `git push`, and remove the ticket's worktree and branch.
+4. **Open the PR** after an integration branch's first merge: call the Skill tool with `pr-description`, passing the base, and run `gh pr create --draft --base <base>`.
+5. **Record** each decision the builder reported, and park the ticket of each question it stopped on. A builder that ends without a head commit fails its ticket: the ticket and every ticket it blocks leave the frontier, with the reason. When it reports a commit that failed on signing, tell the user once to unlock the signer, then commit its staged changes yourself.
+
+When the loop ends, finish each integration branch that has a merge:
+
+1. When `checks.md` says CI does not run the full suite, run it once in the integration worktree, one integration branch at a time, and dispatch one fresh builder to fix what fails.
+2. Update the PR body with `pr-description`: it closes every merged ticket, and the spec when all of its tickets are merged, and it records the decisions taken for those tickets.
+3. Run `gh pr ready <pr>` and post the PR link with its count of merged and planned tickets.
+
+The step is done when every planned ticket is merged, parked, failed, or still waiting on a look, and every integration branch with a merge has a ready PR.
 
 ### Build brief
 
-The brief carries this ticket alone, so the builder gives the whole of its attention to it. Include:
+Send this text with its slots filled, and nothing else. It carries one ticket, so the builder gives the whole of its attention to it. As the builder of a one-ticket plan, follow it yourself and ask the user in place of reporting.
 
-- The ticket ID, its link, and the stack position, plus its parent spec's link when it has one.
-- The worktree path and branch. All work happens there, on that branch name.
-- The base branch, which is also the PR's base.
-- Move the ticket to In Progress before starting, with the tracker's workflow, and state its title.
-- Build the ticket: call the Skill tool with `tdd`, where possible at the seams the ticket or its spec agreed. As a subagent, treat those seams as confirmed; where the ticket and its spec name none, choose the seams and list them in your report. Run the typecheck and single test files as you go. The build is done when one full test suite run passes after your last change: start it in the background where the harness can, and write the docs meanwhile. On a failure, re-run only the failing test until it passes, then run the full suite once more.
-- Before every commit, call the Skill tool with `commit-message`. Before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the base.
-- Commit, push the branch, and open a PR with `--base <base>`. The body links the ticket. Leave the PR unmerged.
-- Self review: call the Skill tool with `pr-review`, passing the PR, `draft`, and, when the ticket has a parent spec, `spec=<ticket URL> spec=<parent spec URL>`. Fix every finding that holds up, run the typecheck, lint, and the tests that exercise the changed files, then commit and push. CI runs the full suite on the push. The self review is done when every finding is fixed or declined with evidence.
-- When a commit fails on signing, keep the changes staged and report the exact error; retry at most once.
-- When an ask-first decision comes up (public API, schema, a new dependency, a lockfile shape) and neither the ticket nor its spec settles it, take the most conservative option and record it in the PR description and the report.
-- Report the PR URL, the head commit, the checks run with their results, each self-review finding with its outcome (or why `pr-review` could not run), every conservative decision, and anything left undone.
+```text
+Build <ticket id> (<ticket link>), a ticket of <spec link, or "no spec">.
 
-## 3. Link the stack
+Read first: <notes>/tickets/<ticket id>.md, <notes>/specs/<spec id>.md,
+<notes>/checks.md, and <notes>/looks/<ticket id>.md when it exists. They hold
+the settled decisions and the approved look. Fetch nothing they already hold.
 
-Without a GitHub stack, GitHub merges each PR into the branch below it, so merging the top PR lands only on the previous ticket's branch. Link every open PR of the stack, bottom to top, into one GitHub stack with the base branch as its trunk:
+Worktree: <path>, on branch <ticket branch>, cut from <integration branch>.
+All work happens there. <Earlier commits on the branch, when it was reused.>
 
-```sh
-gh stack link --base <base> <pr 1> <pr 2> ... <pr n>
+1. Move the ticket to In Progress with the tracker's workflow, and state its
+   title.
+2. Call the Skill tool with `tdd` and build the ticket. The seams the ticket
+   or its spec names are confirmed. Where they name none, choose the seams
+   and list them in your report.
+3. Run the covering checks from checks.md as you go, and once after your last
+   change: the typecheck, the lint, and the tests that exercise the files you
+   changed. The full suite belongs to CI. The checks that need a running app
+   (the browser suite, a UI check) belong to the orchestrator.
+4. Before every commit, call the Skill tool with `commit-message`. Commit on
+   your branch. When a commit fails on signing, keep the changes staged,
+   retry once, and report the exact error.
+5. Merge the tip of <integration branch> into your branch, and run the
+   covering checks for the files that merge touched.
+
+You are done at step 5. The orchestrator merges your branch, pushes, opens
+the PR, and arranges the review.
+
+Decisions: your report is your only channel to the user. When the ticket and
+its spec leave a choice open, take the most conservative option and go on.
+When that choice is about schema, auth, or public API, commit what you have,
+stop, and report the question with your recommendation.
+
+You may start subagents, each with a fresh context window.
+
+Report: the head commit, each covering check with its result, each decision
+as "question, option taken, what the alternative changes", the seams you
+chose, and anything left undone.
 ```
 
-Pass PR numbers, not branch names: `gh stack link` pushes branch arguments before it looks them up. Leave out `--base` and the trunk becomes the repo's default branch, which is wrong when the user named another base.
+## 3. Review
 
-The step is done when `gh api repos/{owner}/{repo}/pulls/<top pr> --jq .stack` shows `base.ref` equal to the base branch and `size` equal to the number of PRs in this stack. Skip the step when the stack has one PR. When `gh stack` is not installed (`gh extension list` has no `github/gh-stack`), skip the link and put the `gh stack link` command in the report for the user to run.
+Skip this step with `no-review`. For each ready PR, dispatch one subagent with a fresh context window to call the Skill tool with `pr-review`, passing the PR and one `spec=<notes file>` for its spec and for each merged ticket, and to publish the review. Then dispatch one more, in the integration worktree, to call the Skill tool with `address-review`, passing the PR, and to report a comment that needs the user's decision in place of asking. Record what they report as the run rules say. The step is done when every comment on every PR has a posted reply or sits in `decisions.md`.
 
 ## 4. Report
 
-For each stack, give the stack number from `.stack.number`, then a table of position, ticket, parent spec, branch, base, PR, and self-review findings fixed and declined, then the top PR's branch and worktree, where the dev server shows every change in that stack. Under the tables, list each conservative decision with its PR, the specs no planned ticket has as its parent, and the issues left out with their reasons. If a stack stopped, name the failing ticket, why it failed, and the tickets not started. Remove the branches and worktrees this run created that hold no commits ahead of their base.
+For each integration branch, give its PR, its worktree, and a table of ticket, parent spec, state (merged, parked, failed, or waiting on a look), and merge commit. Then give:
+
+- `decisions.md` in full, with `## Needs your answer` first.
+- The checks that need a running app, as a checklist for the user, with the dev server command from `checks.md`.
+- The specs no planned ticket has as its parent, and the issues left out with their reasons.
+- Each failed ticket with its reason and the tickets it blocks.
+
+Remove the ticket worktrees and ticket branches this run created that are merged or hold no commits.

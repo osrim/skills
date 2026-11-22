@@ -1,7 +1,7 @@
 ---
 name: pr-review
 description: Trigger this when the user asks to review a GitHub PR, or for an inline review of a PR.
-argument-hint: "[pr-url|number] [draft] [spec=<path|url|issue>...]"
+argument-hint: "[pr-url|number] [draft] [full] [verify=<sha>] [spec=<path|url|issue>...]"
 metadata:
   credits:
     skill: code-review
@@ -15,6 +15,8 @@ Arguments: `$ARGUMENTS`
 
 - PR URL or number. Empty: the PR for the current branch (`gh pr view`).
 - `draft`: return the comments and publish nothing.
+- `full`: run the three reviewers whatever the diff's size.
+- `verify=<sha>`: verify the fixes pushed since your review of that head, as "Verify fixes" describes, in place of steps 2 to 5.
 - `spec=<path|url|issue>`: a spec source; repeat it for several. It replaces spec discovery.
 
 For several PRs, start one sub-agent per PR, with a fresh context window, that runs this whole skill on its PR, publishing included. Then give each PR's report.
@@ -25,6 +27,8 @@ Without `draft`, the user's request authorizes publishing. Publish after verific
 
 Fetch the PR's description, base and head SHAs, commits, changed files, checks, and existing reviews and comments. Review the exact head; use an isolated checkout when the working tree has uncommitted changes. Pin one comparison for every reviewer: `git diff <base>...<head>` and `git log <base>..<head> --oneline`. Confirm the diff is non-empty.
 
+The review is **light** when the diff changes only docs, or 50 lines or fewer outside tests, and `full` is absent.
+
 ## 2. Gather sources
 
 The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
@@ -33,14 +37,18 @@ The issue tracker should have been provided to you. If not, tell the user to run
 
 **Standards:** search the repo for every file that documents how code should be written: applicable `AGENTS.md`, `CLAUDE.md`, contribution guides, and the docs they reference. `CODING_STANDARDS.md` and `CONTRIBUTING.md` go on the list when they exist. Record each path and rule.
 
+You fetch each source once. Save every fetched issue's text, and one file of the standards rules that bear on the changed files with their paths, outside the repo. A `spec=` file path is already such a file. The reviewers read these files and make no tracker calls.
+
 ## 3. Run three independent reviewers
 
-Start each reviewer as its own sub-agent with a fresh context window, so its findings stay independent of yours and of the others. Start the three together, with the pinned SHAs, diff command, commit list, changed files, and their sources; your own reading of the code starts at verification. When you cannot start sub-agents, tell the user and stop.
+For a light review, you are the one reviewer: read the diff once against the three briefs below, then go to step 4.
+
+Otherwise, start each reviewer as its own sub-agent with a fresh context window, so its findings stay independent of yours and of the others. Start the three together, in the foreground, and wait for their reports. Each gets the pinned SHAs, diff command, commit list, changed files, and the paths of its source files; your own reading of the code starts at verification. When you cannot start sub-agents, tell the user and stop.
 
 Reviewers report and only you publish. Each report stays under 400 words and gives every finding a path, line or range, priority, evidence, and requested fix. The step is done when every reviewer has returned its report.
 
 - **Standards reviewer:** every documented-standard breach, citing source and rule, plus Fowler code smells in the introduced code (Mysterious Name, Duplicated Code, Feature Envy, Data Clumps, Primitive Obsession, Repeated Switches, Shotgun Surgery, Divergent Change, Speculative Generality, Message Chains, Middle Man, Refused Bequest), quoting the hunk. Repo standards override smells, and smells are judgement calls. Scope: issues the diff introduces that tooling does not enforce.
-- **Spec reviewer:** missing or partial requirements, unrequested scope, and incorrect implementations, each quoting the spec. Follow callers, config, and deployment behavior where they decide whether a requirement works. When one source is the parent of another, such as a spec and its sub-issue, the sub-issue sets the PR's scope: grade against the sub-issue's requirements and the decisions the spec records, and treat spec requirements that other sub-issues cover as out of scope.
+- **Spec reviewer:** missing or partial requirements, unrequested scope, and incorrect implementations, each quoting the spec. Follow callers, config, and deployment behavior where they decide whether a requirement works. When one source is the parent of another, such as a spec and its sub-issue, the sub-issue sets the PR's scope: grade against the requirements of the sub-issues among the sources and the decisions the spec records, and treat spec requirements that other sub-issues cover as out of scope.
 - **Correctness reviewer:** reads the changed code and the code it connects to (callers, callees, tests), as the developer who gets paged when it breaks. It looks for:
   - **Bug:** a wrong result or crash on an edge case: empty, zero, last item, escaped or encoded forms, a caller the change breaks, a fix applied in one caller while the shared function stays broken.
   - **Risk:** missing checks on untrusted input, injection, leaked secrets, swallowed errors, data loss, copied third-party code or data shipped without the notice its license requires.
@@ -88,6 +96,16 @@ Write `No new findings` when existing comments already cover every finding, and 
 
 On failure, report what was published and what remains, and keep the prepared comments.
 
+## Verify fixes
+
+With `verify=<sha>`, pin the **fix diff**, `git diff <sha>..<head>`, beside the reviewed diff, `git diff <base>...<sha>`. Run the whole review on the new head, steps 2 to 6, when a finding of your review of `<sha>` was P0 or P1, or when the fix diff changes a file the reviewed diff does not. Otherwise:
+
+1. For each thread your review of `<sha>` opened, read the replies and the fix diff. Resolve the thread (GraphQL `resolveReviewThread`) when the fix removes the case you named, or when the decline's evidence holds. Otherwise reply on the thread, opening with the signature, with the case that still fails.
+2. Review the lines the fix diff changed, as the Correctness reviewer does, and verify each finding as in step 4.
+3. Publish as in step 6: one review on the new head, with the new findings or `Fixes verified on <short head sha>.`
+
+With `draft`, return the thread outcomes and the new findings, and publish nothing. Report the threads resolved, the threads still open, and the new findings.
+
 ## 7. Report
 
-Give the comment count, then `## Standards`, `## Spec`, and `## Correctness`. List each finding with its link and a one-line summary, and end each axis with its finding count and worst issue. A skipped axis states why. Add the checks you ran and their limits.
+Give the comment count and whether the review was light, then `## Standards`, `## Spec`, and `## Correctness`. List each finding with its link and a one-line summary, and end each axis with its finding count and worst issue. A skipped axis states why. Add the checks you ran and their limits.
