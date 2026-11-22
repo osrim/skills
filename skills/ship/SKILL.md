@@ -8,12 +8,12 @@ argument-hint: "<spec, ticket, milestone, project, or ticket list> [base branch]
 
 Arguments: `$ARGUMENTS`
 
-- The source and base branch, exactly as `stack-implement` takes them. A list of open PRs skips step 2: write the run notes yourself (the repo's check commands, and each PR's tickets and spec), and use a worktree per PR branch.
+- The source and base branch, exactly as `batch-implement` takes them. A list of open PRs skips step 2: write the run notes yourself (the repo's check commands, and each PR's tickets and spec), and use a worktree per PR branch.
 - `reviewer=`: the cross-family reviewers, in the order to try them, such as `copilot/gpt-6.2-sol,codex/gpt-6.1-sol:high`. Empty: the reviewer and the fallbacks named in the user's instructions (`AGENTS.md`, `CLAUDE.md`).
 
-You are the orchestrator. `stack-implement` lands each spec's tickets on one integration branch with one PR. Every PR then gets a public `pr-review` by a model from a **different family** than the one that built it (Claude, GPT, Gemini: the provider that serves the model does not count). `address-review` fixes or answers every open comment on the PR: from that reviewer, from review bots such as CodeRabbit, and from humans. The reviewer then verifies the fixes.
+You are the orchestrator. `batch-implement` lands each spec's tickets on one integration branch with one PR. Every PR then gets a public `pr-review` by a model from a **different family** than the one that built it (Claude, GPT, Gemini: the provider that serves the model does not count). `address-review` fixes or answers every open comment on the PR: from that reviewer, from review bots such as CodeRabbit, and from humans. The reviewer then verifies the fixes.
 
-The user's request authorizes everything `stack-implement`, `pr-review`, and `address-review` authorize. Merging stays with the user.
+The user's request authorizes everything `batch-implement`, `pr-review`, and `address-review` authorize. Merging stays with the user.
 
 With one ticket in the run, do the work of steps 4 and 9 yourself, in the PR's worktree, following the brief a sub-agent would get, so the user watches the work and can steer it, and ask the user each question when it comes up. With more tickets, each step dispatches sub-agents as written, and the run rules below hold.
 
@@ -42,7 +42,7 @@ Create the run notes directory outside the repo, in the harness's scratch direct
 
 ## 2. Implement
 
-Call the Skill tool with `stack-implement`, passing the source, the base branch, `notes=<dir>`, and `no-review`. It shows the user the visual tickets' looks, builds the frontier, and posts each PR when it is ready. Start step 3 for a PR as soon as it is posted. The step is done when `stack-implement`'s report is posted. Carry its tables and each PR's worktree path through every later step.
+Call the Skill tool with `batch-implement`, passing the source, the base branch, and `notes=<dir>`. It shows the user the visual tickets' looks, builds the frontier, and posts each PR when it is ready. Start step 3 for a PR as soon as it is posted. The step is done when `batch-implement`'s report is posted. Carry its tables and each PR's worktree path through every later step.
 
 ## 3. Review on another family
 
@@ -91,7 +91,7 @@ Report without waiting for CI. For each PR, give its link, its worktree, the dev
 - The manual checklist from step 7.
 - Requested human reviewers who have not reviewed, bots that timed out, failed checks, and recorded conflicts.
 - PRs with no cross-family review.
-- From `stack-implement`'s report: the tickets still waiting on a look, the failed tickets, the issues left out with their reasons, and the specs no planned ticket has as its parent.
+- From `batch-implement`'s report: the tickets still waiting on a look, the failed tickets, the issues left out with their reasons, and the specs no planned ticket has as its parent.
 
 End with `decisions.md` in full, `## Needs your answer` first. Running `ship` again on the same source builds the tickets the user has since answered or approved.
 

@@ -1,21 +1,20 @@
 ---
-name: stack-implement
+name: batch-implement
 description: Trigger this when the user asks to implement a spec, several tickets, a milestone, or a project.
-argument-hint: "<spec, milestone, project, or ticket list> [base branch] [notes=<dir>] [no-review]"
+argument-hint: "<spec, milestone, project, or ticket list> [base branch] [notes=<dir>]"
 ---
 
-# Stack implement
+# Batch implement
 
 Arguments: `$ARGUMENTS`
 
 - The source: a spec, a milestone, a project, or a list of tickets (URLs or IDs).
 - The base branch every integration branch starts from. Empty: the repo's default branch.
 - `notes=<dir>`: the run notes directory. Empty: create one outside the repo, in the harness's scratch directory when it has one.
-- `no-review`: skip step 3, because the caller reviews the PRs.
 
 This skill is Matt Pocock's `implement-spec`, run for every spec in the source. Each spec's tickets land on one **integration branch** with one PR. The tickets are a task graph: the **frontier** is every ticket whose blockers are merged, and the whole frontier builds at once.
 
-You are the orchestrator. Every ticket gets its own worktree and a **builder**, a subagent started with a fresh context window, in the background where the harness can. The builder builds the ticket test-first and commits; you merge its branch into the integration branch, push, and open the PR. With one ticket in the plan, you are the builder, so the user watches the work and can steer it.
+You are the orchestrator. This skill builds and opens the PRs; reviewing them is the caller's work (`ship`, or the user with `pr-review`). Every ticket gets its own worktree and a **builder**, a subagent started with a fresh context window, in the background where the harness can. The builder builds the ticket test-first and commits; you merge its branch into the integration branch, push, and open the PR. With one ticket in the plan, you are the builder, so the user watches the work and can steer it.
 
 The user's request authorizes creating the branches and worktrees, pushing the integration branches, opening their PRs, and moving each ticket to In Progress, with no further confirmation. Merging a PR stays with the user.
 
@@ -110,8 +109,8 @@ All work happens there. <Earlier commits on the branch, when it was reused.>
 5. Merge the tip of <integration branch> into your branch, and run the
    covering checks for the files that merge touched.
 
-You are done at step 5. The orchestrator merges your branch, pushes, opens
-the PR, and arranges the review.
+You are done at step 5. The orchestrator merges your branch, pushes, and
+opens the PR.
 
 Decisions: your report is your only channel to the user. When the ticket and
 its spec leave a choice open, take the most conservative option and go on.
@@ -125,11 +124,7 @@ as "question, option taken, what the alternative changes", the seams you
 chose, and anything left undone.
 ```
 
-## 3. Review
-
-Skip this step with `no-review`. For each ready PR, dispatch one subagent with a fresh context window to call the Skill tool with `pr-review`, passing the PR and one `spec=<notes file>` for its spec and for each merged ticket, and to publish the review. Then dispatch one more, in the integration worktree, to call the Skill tool with `address-review`, passing the PR, and to report a comment that needs the user's decision in place of asking. Record what they report as the run rules say. The step is done when every comment on every PR has a posted reply or sits in `decisions.md`.
-
-## 4. Report
+## 3. Report
 
 For each integration branch, give its PR, its worktree, and a table of ticket, parent spec, state (merged, parked, failed, or waiting on a look), and merge commit. Then give:
 
