@@ -11,7 +11,7 @@ Write a commit message for the staged changes. This skill writes the text only.
 ## Process
 
 1. Read the staged diff (`git diff --cached`), the current branch (`git branch --show-current`), and the recent commits (`git log --oneline -20`). If the staged diff is empty, say so and stop.
-2. If the `the-writing-whip` skill is available, load it before you write any text. Else, write plain and short, with concrete words.
+2. Write plain statements in concrete words, and keep one noun for each thing. Punctuate with commas, colons, parentheses, or periods.
 3. Find the intent of the change. If the diff holds more than one concern, propose a split in one line. Then draft one message for the full diff.
 4. Match the format, scopes, and casing of the recent commits. If the history has no clear style, use `type(scope): subject`.
 5. If the branch name holds a ticket ID (for example `ABC-123`), add a `Refs: ABC-123` trailer.
@@ -19,9 +19,9 @@ Write a commit message for the staged changes. This skill writes the text only.
 
 ## Output
 
-If a person asked for the message, put only the message in one fenced code block. If you pass it to `git commit`, use the plain text.
+The subject says what changed, in the imperative mood, in 72 characters or fewer. Add a body of up to 3 lines on why only when the subject cannot carry it. One blank line separates the subject from the body.
 
-The subject says what changed, in the imperative mood, in 72 characters or fewer. Add a body of up to 3 lines on why only when the subject cannot carry it.
+If a person asked for the message, put only the message in one fenced code block. If you pass it to `git commit`, use the plain text, with the subject and the body each in its own `-m` flag, which puts the blank line between them.
 
 Example:
 

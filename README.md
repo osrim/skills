@@ -6,17 +6,17 @@ Agent skills that I use every day.
 
 | Skill | What it does |
 | --- | --- |
-| [`ship`](skills/ship/SKILL.md) | Runs the whole flow below for a spec, a ticket, a milestone, or a project: implement, review on another provider beside the self review, settle open decisions with you, address every comment once review bots finish, have the reviewer check the final head, restack, report, and fix failing checks. |
-| [`stack-implement`](skills/stack-implement/SKILL.md) | Runs Matt Pocock's `implement` once per ticket and lands the tickets as stacked PRs: one stack for a spec or a ticket list, one per spec for a milestone or project, and one worktree per ticket, built in the main thread when there is one ticket and by one subagent per ticket otherwise. Each builder builds test-first, opens the PR, and self-reviews it with `pr-review draft`. Leaves out unticketed specs, wayfinder maps, and tickets not triaged for an agent, and names the skill to run first. |
+| [`ship`](skills/ship/SKILL.md) | Runs the whole flow below for a spec, a ticket, a milestone, or a project, without stopping for questions: preflight, implement, review on another model family, address every comment once review bots finish, have the reviewer verify the fixes, check the running app, report with the decisions it took, and fix failing checks. |
+| [`batch-implement`](skills/batch-implement/SKILL.md) | Runs Matt Pocock's `implement-spec` for every spec in the source: one integration branch and one PR per spec, with every unblocked ticket built at once, test-first, by its own subagent in its own worktree. Shows you a mockup of each visual ticket before building it. Leaves out unticketed specs, wayfinder maps, and tickets not triaged for an agent, and names the skill to run first. |
 | [`pr-review`](skills/pr-review/SKILL.md) | Reviews a GitHub PR for standards, spec, and correctness in three sub-agents, then publishes inline comments. Based on Matt Pocock's [`code-review`](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md). |
 | [`address-review`](skills/address-review/SKILL.md) | Works through a PR's open review comments from models, bots, and people: fixes what holds up and replies to each thread, signed with the model. |
 
 ### How they fit
 
 `ship` covers the build and review steps of Matt Pocock's main flow: his
-`implement` and `code-review` for each ticket, plus a cross-provider review,
-review comments, and CI. It uses his words: a spec is what `to-spec`
-publishes, and a ticket is what `to-tickets` splits it into.
+`implement-spec` for each spec, plus a cross-family review, review comments,
+and CI. It uses his words: a spec is what `to-spec` publishes, and a ticket is
+what `to-tickets` splits it into.
 
 ```text
 grill-with-docs → to-spec → to-tickets → ship
@@ -24,18 +24,19 @@ grill-with-docs → to-spec → to-tickets → ship
 
 ```text
 ship
-├─ stack-implement   per ticket: tdd, open PR, pr-review draft (self review)
-├─ pr-review         public review by a model from another provider, against
-│                    the ticket and its parent spec, beside the self review
-│                    and once more on the final head
+├─ batch-implement   per spec: one integration branch and PR
+│  ├─ prototype      a mockup of each visual ticket, shown before its build
+│  └─ tdd            per ticket, in parallel along the blocking edges
+├─ pr-review         public review by a model from another family, against
+│                    the spec and its tickets, then a check of the fixes
 └─ address-review    fixes or answers pr-review, review bots, and people
 ```
 
 Every commit goes through `commit-message`, and every PR body through
 `pr-description`.
 
-Each skill also runs on its own. Name your cross-provider reviewer in your
-`AGENTS.md` or `CLAUDE.md`, or pass `reviewer=` to `ship`.
+Each skill also runs on its own. Name your cross-family reviewer and its
+fallbacks in your `AGENTS.md` or `CLAUDE.md`, or pass `reviewer=` to `ship`.
 
 ## Writing
 
@@ -69,10 +70,9 @@ alongside the skills that use it:
 
 | Dependency | Used by | Required |
 | --- | --- | --- |
-| [`setup-matt-pocock-skills`](https://github.com/mattpocock/skills/tree/main/skills/engineering/setup-matt-pocock-skills) | `stack-implement`, `pr-review`, and `ship`, which read and update issues with the tracker workflow it configures. | Yes |
-| [`tdd`](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `stack-implement`, which builds each ticket with it, and `ship`, which runs `stack-implement`. | Yes |
-| [`gh stack`](https://github.com/github/gh-stack) | `stack-implement`, which links the PRs into a GitHub stack that merges into the base branch, and `ship`, which runs `stack-implement`. Without it, `stack-implement` reports the link command for you to run. | No |
-| [`the-writing-whip`](https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11) | `commit-message` and `pr-description`. Without it, they use a short plain-writing rule. | No |
+| [`setup-matt-pocock-skills`](https://github.com/mattpocock/skills/tree/main/skills/engineering/setup-matt-pocock-skills) | `batch-implement`, `pr-review`, and `ship`, which read and update issues with the tracker workflow it configures. | Yes |
+| [`tdd`](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `batch-implement`, which builds each ticket with it, and `ship`, which runs `batch-implement`. | Yes |
+| [`prototype`](https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype) | `batch-implement`, which mocks up a visual ticket that carries no mockup, and `ship`, which runs `batch-implement`. | For visual tickets |
 
 ## Release
 

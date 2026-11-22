@@ -1,3 +1,0 @@
-interface:
-  display_name: "Stack implement"
-  short_description: "Implement a spec's tickets as stacked PRs, one worktree each"
