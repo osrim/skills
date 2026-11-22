@@ -72,7 +72,6 @@ alongside the skills that use it:
 | [`setup-matt-pocock-skills`](https://github.com/mattpocock/skills/tree/main/skills/engineering/setup-matt-pocock-skills) | `stack-implement`, `pr-review`, and `ship`, which read and update issues with the tracker workflow it configures. | Yes |
 | [`tdd`](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `stack-implement`, which builds each ticket with it, and `ship`, which runs `stack-implement`. | Yes |
 | [`gh stack`](https://github.com/github/gh-stack) | `stack-implement`, which links the PRs into a GitHub stack that merges into the base branch, and `ship`, which runs `stack-implement`. Without it, `stack-implement` reports the link command for you to run. | No |
-| [`the-writing-whip`](https://gist.github.com/ossa-ma/dae6f9571534f3fbd1266a384be00e11) | `commit-message` and `pr-description`. Without it, they use a short plain-writing rule. | No |
 
 ## Release
 
