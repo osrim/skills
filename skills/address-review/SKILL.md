@@ -43,8 +43,9 @@ Read the commented code at the PR head and the code it connects to. Check each c
 - **Fix:** the comment holds up. Make the smallest change that resolves it, in the repo's standards. An outdated thread that a later commit already fixed is a Fix with that commit.
 - **Decline:** the comment is wrong, out of scope, or conflicts with the spec or a repo rule. Record the evidence: code path, rule, spec line, or check output.
 - **Answer:** the comment asks a question. Record the answer and its evidence.
+- **Ask:** the right fix needs a decision that belongs to the user (behavior change, public API, schema, security). Record the question and the option you recommend, leave the thread unreplied so the next run collects it again, and go on with the rest.
 
-When the right fix needs a decision that belongs to the user (behavior change, public API, schema, security), ask, grouping the questions, and keep working on the rest. The step is done when every comment on the work list has one outcome.
+The step is done when every comment on the work list has one outcome.
 
 ## 3. Verify and push
 
@@ -61,6 +62,7 @@ Every reply opens with the signature.
 - **Fix:** `Fixed in <short sha>: <what changed>.`
 - **Decline:** why, citing the evidence.
 - **Answer:** the answer, citing the evidence.
+- **Ask:** no reply.
 
 With `draft`, return each reply with its thread link and stop here.
 
@@ -73,4 +75,4 @@ On failure, report what was posted and what remains, and keep the prepared repli
 
 ## 5. Report
 
-Give the count per outcome, then each comment's link, outcome, and a one-line summary. Add the checks you ran and their results, the pushed commits, and anything unposted or waiting on the user.
+Give the count per outcome, then each comment's link, outcome, and a one-line summary. List each Ask with its thread link, its question, and your recommendation. Add the checks you ran and their results, the pushed commits, and anything unposted.

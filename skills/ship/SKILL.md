@@ -61,7 +61,7 @@ For each PR, once its review is in, dispatch one sub-agent on your own model, in
 
 - The PR URL and its worktree path.
 - Call the Skill tool with `address-review`, passing the PR. It waits for review bots still reviewing.
-- When a fix needs a decision that belongs to the user, take the recommended option and report it as a decision. When that decision is about schema, auth, or public API, leave the comment unreplied and report the question with its thread link and a recommendation.
+- Give a comment the Ask outcome only when its decision is about schema, auth, or public API. For any other decision that belongs to the user, take the option you recommend and report it as a decision.
 - Report the counts per outcome, the pushed commits, the files the fixes touched, the bots that timed out, the decisions, and the open questions.
 
 Record the decisions and the questions as the run rules say. The step is done when every comment on every work list has a posted reply or sits under `## Needs your answer`.
