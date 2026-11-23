@@ -1,10 +1,10 @@
 ---
-name: ship
+name: deliver
 description: Trigger this when the user asks to implement or ship a spec, a ticket, a milestone, or a project.
 argument-hint: "<spec, ticket, milestone, project, ticket list, or PR list> [base branch] [stack] [reviewer=<provider>/<model>[:<effort>][,<next>...]]"
 ---
 
-# Ship
+# Deliver
 
 Arguments: `$ARGUMENTS`
 
@@ -85,7 +85,7 @@ Report without waiting for CI. For each integration branch, give its PRs (with `
 - PRs with no cross-family review.
 - The tickets still waiting on a look, each failed ticket with its reason and the tickets it blocks, the issues left out with their reasons, and the specs no planned ticket has as its parent.
 
-End with `decisions.md` in full, `## Needs your answer` first. Running `ship` again on the same source builds the tickets the user has since answered or approved.
+End with `decisions.md` in full, `## Needs your answer` first. Running `deliver` again on the same source builds the tickets the user has since answered or approved.
 
 ## 9. Watch the checks
 
