@@ -1,6 +1,6 @@
 # Reference review
 
-These are formatting examples, not reusable findings. The exact published bodies are preserved below. The review body observed when creating this skill was `🤖 GPT-6.1-Sol`; use the actual reviewing model's identity for future reviews.
+These are formatting examples, not reusable findings. The exact published bodies are preserved below.
 
 ## Standards comment
 
