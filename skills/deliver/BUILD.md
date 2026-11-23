@@ -1,6 +1,6 @@
 # Build
 
-Step 2 of `ship`: Matt Pocock's `implement-spec`, run for every spec in the source. Each spec's tickets land on one **integration branch**. The tickets are a task graph: the **frontier** is every ticket whose blockers are merged, and the whole frontier builds at once.
+Step 2 of `deliver`: Matt Pocock's `implement-spec`, run for every spec in the source. Each spec's tickets land on one **integration branch**. The tickets are a task graph: the **frontier** is every ticket whose blockers are merged, and the whole frontier builds at once.
 
 Every ticket gets its own worktree and a **builder**: a sub-agent that builds it test-first and commits, in the background where the harness can. You merge its branch into the integration branch and push. With one ticket in the plan, you are the builder, so the user watches the work and can steer it.
 

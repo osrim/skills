@@ -20,4 +20,4 @@ Skills run in Claude Code and Codex. Write steps both can follow: name a command
 
 ## Skill folders
 
-Every skill has `agents/openai.yaml` with `interface.display_name` and `interface.short_description` for the Codex skill picker. The README lists every skill in its group, and the "How they fit" flow shows every skill `ship` runs.
+Every skill has `agents/openai.yaml` with `interface.display_name` and `interface.short_description` for the Codex skill picker. The README lists every skill in its group, and the "How they fit" flow shows every skill `deliver` runs.
