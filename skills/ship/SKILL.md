@@ -1,32 +1,33 @@
 ---
 name: ship
-description: Trigger this when the user asks to ship a spec, a ticket, a milestone, or a project end to end.
-argument-hint: "<spec, ticket, milestone, project, or ticket list> [base branch] [reviewer=<provider>/<model>[:<effort>][,<next>...]]"
+description: Trigger this when the user asks to implement or ship a spec, a ticket, a milestone, or a project.
+argument-hint: "<spec, ticket, milestone, project, ticket list, or PR list> [base branch] [stack] [reviewer=<provider>/<model>[:<effort>][,<next>...]]"
 ---
 
 # Ship
 
 Arguments: `$ARGUMENTS`
 
-- The source and base branch, exactly as `batch-implement` takes them. A list of open PRs skips step 2: write the run notes yourself (the repo's check commands, and each PR's tickets and spec), and use a worktree per PR branch.
-- `reviewer=`: the cross-family reviewers, in the order to try them, such as `copilot/gpt-6.2-sol,codex/gpt-6.1-sol:high`. Empty: the reviewer and the fallbacks named in the user's instructions (`AGENTS.md`, `CLAUDE.md`).
+- The source: a spec, a milestone, a project, a list of tickets (URLs or IDs), or a list of open PRs. A PR list skips step 2: write the run notes yourself (`checks.md`, and each PR's tickets and spec) and give each PR branch a worktree.
+- The base branch every integration branch starts from. Empty: the repo's default branch.
+- `stack`: one PR per ticket, each based on the one below it, so the user can review and merge a spec layer by layer. Without it, each spec gets one PR.
+- `reviewer=`: the cross-family reviewers, in the order to try them. Empty: the reviewer and the fallbacks the user's instructions name (`AGENTS.md`, `CLAUDE.md`).
 
-You are the orchestrator. `batch-implement` lands each spec's tickets on one integration branch with one PR. Every PR then gets a public `pr-review` by a model from a **different family** than the one that built it (Claude, GPT, Gemini: the provider that serves the model does not count). `address-review` fixes or answers every open comment on the PR: from that reviewer, from review bots such as CodeRabbit, and from humans. The reviewer then verifies the fixes.
+You are the **orchestrator**. Each spec's tickets build in parallel and land on one **integration branch**, with one PR, or with `stack`, one PR per ticket. Every PR then gets a public `pr-review` by a model from a **different family** than the one that built it (Claude, GPT, Gemini: the provider that serves the model does not count). `address-review` fixes or answers every open comment, from that reviewer, from review bots, and from humans. The reviewer then verifies the fixes.
 
-The user's request authorizes everything `batch-implement`, `pr-review`, and `address-review` authorize. Merging stays with the user.
+The user's request authorizes creating branches and worktrees, pushing, opening PRs, moving tickets to In Progress, and everything `pr-review` and `address-review` authorize. Merging stays with the user.
 
-With one ticket in the run, do the work of steps 4 and 9 yourself, in the PR's worktree, following the brief a sub-agent would get, so the user watches the work and can steer it, and ask the user each question when it comes up. With more tickets, each step dispatches sub-agents as written, and the run rules below hold.
+Start every sub-agent with a fresh context window, in its PR's worktree, with the brief the step names. Before every commit, call the Skill tool with `commit-message`; before `gh pr create` or `gh pr edit --body`, call it with `pr-description`, passing the PR's base and its tickets' evidence files.
 
-Start every sub-agent with a fresh context window and give it its PR's worktree, so its work stays in that checkout. Tell each one that commits, and do the same when you commit: before every commit, call the Skill tool with `commit-message`; before `gh pr edit --body`, call it with `pr-description`, passing the PR's base.
+With one ticket in the run, you do the work yourself, following the brief a sub-agent would get, so the user watches it and can steer it, and you ask each question as it comes up.
 
 ## Run rules
 
-- **Wait by ending the turn.** After you start background work or a PR watch, end the turn; its completion brings you back. Every turn you take starts work, acts on a result, or reports one. When the harness cannot run a child in the background, run it in the foreground.
-- **Decide and record.** The user is away after step 1: put no question to them. When a choice comes up that the tickets and specs leave open, take the recommended option and append it to `<notes>/decisions.md` as the PR or ticket, the question, the option taken, and what the alternative changes. You alone write that file, from the sub-agents' reports.
-- **Park on schema, auth, or public API.** A choice in one of those areas that the tickets and specs leave open goes under `## Needs your answer` in `<notes>/decisions.md` with a recommendation. Its comment stays unreplied or its ticket stays parked, and the rest of the run goes on.
-- **Show the decisions.** The step 8 report and the step 9 result each end with `decisions.md` in full, so the list is always in the latest message.
-- **Covering checks.** Every fix round runs only the typecheck, the lint, and the tests that exercise the changed files. CI runs the full suite on every push, and step 9 fixes what it finds.
-- **Fall back.** When a provider reports a usage limit, start the remaining children on the model fallback the user's instructions name, and check that the reviewer is still a different family from the builder. When a reviewer child fails, retry it once, then move to the next reviewer on the list.
+- **Wait by ending the turn.** After you start background work or a PR watch, end the turn; its completion brings you back. Every turn you take starts work, acts on a result, or reports one. When the harness cannot run a sub-agent in the background, run it in the foreground.
+- **Decide and record.** The user is away after step 1: put no question to them. When a choice comes up that the tickets and specs leave open, take the recommended or most conservative option and append it to `<notes>/decisions.md` as the PR or ticket, the question, the option taken, and what the alternative changes. You alone write that file, from the sub-agents' reports.
+- **Park on schema, auth, or public API.** A choice in one of those areas that the tickets and specs leave open goes under `## Needs your answer` in `decisions.md` with a recommendation. Its ticket and every ticket it blocks leave the frontier, or its comment stays unreplied, and the rest of the run goes on.
+- **Covering checks.** Builders and fix rounds run only the typecheck, the lint, and the tests that exercise the changed files. CI runs the full suite on every push, and step 9 fixes what it finds.
+- **Fall back.** When a provider reports a usage limit, start the remaining sub-agents on the model fallback the user's instructions name, and check that the reviewer is still a different family from the builder. When a reviewer fails, retry it once, then move to the next reviewer on the list.
 
 ## 1. Preflight
 
@@ -40,61 +41,52 @@ Run each check while the user is still here, and stop with the failing check whe
 
 Create the run notes directory outside the repo, in the harness's scratch directory when it has one, and write `preflight.md` with the reviewer, the PR watch, and the owner of the app checks. The step is done when every check has passed.
 
-## 2. Implement
+## 2. Build
 
-Call the Skill tool with `batch-implement`, passing the source, the base branch, and `notes=<dir>`. It shows the user the visual tickets' looks, builds the frontier, and posts each PR when it is ready. Start step 3 for a PR as soon as it is posted. The step is done when `batch-implement`'s report is posted. Carry its tables and each PR's worktree path through every later step.
+Follow [BUILD.md](BUILD.md): it plans the integration branches, shows the user the visual tickets' looks, builds the frontier, and opens the PRs. Start step 3 for a PR as soon as it is ready. The step is done when BUILD.md's completion criterion holds.
 
 ## 3. Review on another family
 
-For each ready PR, start one child on the reviewer's provider, model, and effort with the harness's cross-provider delegation. The brief:
-
-- The PR URL and its worktree path, which the child only reads.
-- Call the Skill tool with `pr-review`, passing the PR and one `spec=<notes file>` for the PR's spec and for each ticket merged into it, and publish the review. Those files hold the issues' text: make no tracker calls for them.
-- The app checks run once per PR in step 7, owned by the owner in `preflight.md`. Drop a finding that says they are missing.
-- Report the review URL, the head SHA reviewed, and the finding count per axis and per priority.
-
-Run the children in parallel. The step is done when every PR has a review signed `🤖` by the reviewer (check with `gh api repos/<owner>/<repo>/pulls/<number>/reviews`), or every reviewer on the list has failed for it. A PR with no cross-family review gets one sub-agent on your own model that runs `pr-review` the same way, and step 8 flags it.
+For each ready PR, start a reviewer with [REVIEW-BRIEF.md](REVIEW-BRIEF.md). With `stack`, a layer's spec sources are its own ticket and its spec. Run the reviewers in parallel. The step is done when every PR has a review signed `🤖` by the reviewer (check with `gh api repos/<owner>/<repo>/pulls/<number>/reviews`), or every reviewer on the list has failed for it. A PR with no cross-family review gets one sub-agent on your own model with the same brief, and step 8 flags it.
 
 ## 4. Address the review
 
-For each PR, once its review is in, dispatch one sub-agent on your own model, in parallel. The brief:
-
-- The PR URL and its worktree path.
-- Call the Skill tool with `address-review`, passing the PR. It waits for review bots still reviewing.
-- Give a comment the Ask outcome only when its decision is about schema, auth, or public API. For any other decision that belongs to the user, take the option you recommend and report it as a decision.
-- Report the counts per outcome, the pushed commits, the files the fixes touched, the bots that timed out, the decisions, and the open questions.
-
-Record the decisions and the questions as the run rules say. The step is done when every comment on every work list has a posted reply or sits under `## Needs your answer`.
+For each PR, once its review is in, dispatch a sub-agent with [ADDRESS-BRIEF.md](ADDRESS-BRIEF.md), in parallel. Record the decisions and questions it reports as the run rules say. The step is done when every comment on every work list has a posted reply or sits under `## Needs your answer`.
 
 ## 5. Verify the fixes
 
-For each PR whose head moved since the reviewer's review, start one child on the reviewer as in step 3, briefed to call the Skill tool with `pr-review`, passing the PR, the same `spec=` files, and `verify=<head SHA it reviewed>`. `pr-review` checks the fix diff alone, and reviews in full only after a P0 or P1 finding or a fix outside the reviewed files. When it publishes new findings, run step 4 once more for that PR. Leave any later review to the user. The step is done when the reviewer has verified each moved PR, or its error is recorded.
+For each PR whose head moved since the reviewer's review, start the reviewer with [REVIEW-BRIEF.md](REVIEW-BRIEF.md) and its verify line. `pr-review` checks the fix diff alone, and reviews in full only after a P0 or P1 finding or a fix outside the reviewed files. When it publishes new findings, run step 4 once more for that PR. Leave any later review to the user. The step is done when the reviewer has verified each moved PR, or its error is recorded.
 
 ## 6. Level with the base
 
-For each PR that `gh pr view <pr> --json mergeable` reports as `CONFLICTING`, dispatch one sub-agent in its worktree to merge `origin/<base>` into the PR branch, resolve the conflicts in favour of what the tickets, specs, and reviews settled, run the covering checks for the conflicted files, and push with a plain `git push`. A conflict those decisions do not settle is aborted with `git merge --abort` and recorded with its files. The step is done when no PR conflicts, or each conflict is recorded.
+Bring each PR level with its base, in its worktree, with a merge and a plain `git push`:
+
+- Without `stack`, level each PR that `gh pr view <pr> --json mergeable` reports as `CONFLICTING`, by merging `origin/<base>`.
+- With `stack`, go bottom-up through each stack and level every layer whose base moved since its last merge, by merging the branch below it (`origin/<base>` for the first layer), so the fixes on lower layers reach the layers above.
+
+Dispatch one sub-agent per conflict to resolve it in favour of what the tickets, specs, and reviews settled, and run the covering checks for the conflicted files. A conflict those decisions do not settle is aborted with `git merge --abort` and recorded with its files; with `stack`, the layers above it wait. The step is done when every PR is level, or each conflict is recorded.
 
 ## 7. Check the running app
 
-For each PR, at its final head, in its worktree, one PR at a time:
+For each PR, at its final head, in its worktree, one PR at a time (with `stack`, only the top layer, which holds every ticket):
 
 1. Start the dev server from `checks.md` on a port of its own, in the background, and leave it running for the user.
-2. When the app checks are yours, run the browser suite once and the repo's UI check on the screens the PR's tickets change, and record each failure with its ticket. Dispatch one sub-agent to fix the failures, run the covering checks, and push.
+2. When the app checks are yours, run the browser suite once and the repo's UI check on the screens the PR's tickets change, and record each failure with its ticket. Dispatch one sub-agent to fix the failures on the PR (with `stack`, on the lowest layer that causes each one), run the covering checks, and push. With `stack`, run step 6 again.
 3. When their owner is `manual, user`, write the checklist: each screen the tickets change, and what to confirm on it.
 
 The step is done when every PR has a dev server URL, or the exact command when the server would not start, and either a result for the app checks or a checklist.
 
 ## 8. Report
 
-Report without waiting for CI. For each PR, give its link, its worktree, the dev server URL, and a table of ticket, parent spec, and state (merged, parked, failed, or waiting on a look), then the reviewer and its findings per priority, the `address-review` outcomes (fix, decline, answer), the verification result, and the checks (passed, pending, or failed, from `gh pr checks <pr>`). Then list what waits on the user:
+Report without waiting for CI. For each integration branch, give its PRs (with `stack`, in merge order), their worktrees, the dev server URL, and a table of ticket, parent spec, state (merged, parked, failed, or waiting on a look), and merge commit. For each PR, give the reviewer and its findings per priority, the `address-review` outcomes (fix, decline, answer), the verification result, and the checks (passed, pending, or failed, from `gh pr checks <pr>`). Then list what waits on the user:
 
 - The manual checklist from step 7.
 - Requested human reviewers who have not reviewed, bots that timed out, failed checks, and recorded conflicts.
 - PRs with no cross-family review.
-- From `batch-implement`'s report: the tickets still waiting on a look, the failed tickets, the issues left out with their reasons, and the specs no planned ticket has as its parent.
+- The tickets still waiting on a look, each failed ticket with its reason and the tickets it blocks, the issues left out with their reasons, and the specs no planned ticket has as its parent.
 
 End with `decisions.md` in full, `## Needs your answer` first. Running `ship` again on the same source builds the tickets the user has since answered or approved.
 
 ## 9. Watch the checks
 
-Watch the required checks on every PR's head with the harness's PR watch. Without one, read `gh pr checks <pr>` once, report it, and stop. For each PR with a failed check, dispatch one sub-agent in its worktree to read the failing log, fix the cause, run the check locally, and push with a plain `git push`. The step is done when every required check passes, or each PR has had one fix round. Then stop the watch and post a one-line result per PR, naming the checks still failing, followed by `decisions.md`.
+Watch the required checks on every PR's head with the harness's PR watch. Without one, read `gh pr checks <pr>` once, report it, and stop. For each PR with a failed check, dispatch one sub-agent in its worktree to read the failing log, fix the cause, run the check locally, and push with a plain `git push`; with `stack`, run step 6 after the fixes. The step is done when every required check passes, or each PR has had one fix round. Then stop the watch and post a one-line result per PR, naming the checks still failing, followed by `decisions.md` in full.

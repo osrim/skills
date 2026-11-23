@@ -51,7 +51,7 @@ Reviewers report and only you publish. Each report stays under 400 words and giv
 - **Spec reviewer:** missing or partial requirements, unrequested scope, and incorrect implementations, each quoting the spec. Follow callers, config, and deployment behavior where they decide whether a requirement works. When one source is the parent of another, such as a spec and its sub-issue, the sub-issue sets the PR's scope: grade against the requirements of the sub-issues among the sources and the decisions the spec records, and treat spec requirements that other sub-issues cover as out of scope.
 - **Correctness reviewer:** reads the changed code and the code it connects to (callers, callees, tests), as the developer who gets paged when it breaks. It looks for:
   - **Bug:** a wrong result or crash on an edge case: empty, zero, last item, escaped or encoded forms, a caller the change breaks, a fix applied in one caller while the shared function stays broken.
-  - **Risk:** missing checks on untrusted input, injection, leaked secrets, swallowed errors, data loss, copied third-party code or data shipped without the notice its license requires.
+  - **Risk:** missing checks on untrusted input, injection, leaked secrets, swallowed errors, data loss, copied third-party code or data shipped without the notice its license requires, a Merge danger in the PR description that calls a one-way change two-way.
   - **Load:** work that grows faster than the input: regex backtracking, rescans from every offset, a query or allocation per item, an input-sized array spread into a call's arguments. Judge against the expected load in the repo, and against hostile input wherever the code reads untrusted data.
   - **Missing test:** risky new logic (a parser, a security check, a bug fix) with no test that fails when it breaks.
 
@@ -65,7 +65,7 @@ Priority by impact: P0 blocker, P1 urgent correctness or operational failure, P2
 
 ## 5. Write comments
 
-Match the bodies in [the reference review](references/example-review.md):
+Match the bodies in [the reference review](EXAMPLE-REVIEW.md):
 
 ```text
 [P2] Imperative title naming the fix

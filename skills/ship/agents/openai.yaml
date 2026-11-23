@@ -1,3 +1,3 @@
 interface:
   display_name: "Ship"
-  short_description: "Implement, review on another model family, and address the review"
+  short_description: "Build as one PR or a stack, review on another model family, and address it"

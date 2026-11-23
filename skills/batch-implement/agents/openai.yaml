@@ -1,3 +1,0 @@
-interface:
-  display_name: "Batch implement"
-  short_description: "Build a spec's tickets in parallel onto one integration branch and PR"
